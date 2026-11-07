@@ -1,0 +1,167 @@
+import {addDelegatedEventListener, hideElem, showElem} from '../utils/dom.ts';
+import {POST} from '../modules/fetch.ts';
+
+// nested types marshal with their Go field names, see services/reviewmap/pagedata.go
+export type ReviewMapRef = {
+  File: string,
+  NameHash: string,
+  StartLine: number,
+  EndLine: number,
+  Valid: boolean,
+};
+
+export type ReviewMapBullet = {
+  Index: number,
+  Hash: string,
+  Text: string,
+  Orphan: boolean,
+  Refs: ReviewMapRef[],
+};
+
+export type ReviewMapPageData = {
+  ignoredReason: string,
+  issueLink: string,
+  toggleUrl: string,
+  canReview: boolean,
+  myReviewed: string[],
+  bullets: ReviewMapBullet[],
+  commentLinks: Record<string, {id: number, url: string}[]>,
+  coverage: {TotalChanged: number, MappedChanged: number, UnmappedFiles: string[]},
+  ignoreGlobs: string[],
+  invalidRefCount: number,
+  orphanCount: number,
+  progress: {userId: number, name: string, done: number, total: number}[],
+};
+
+const filterStorageKey = 'review-map-filter';
+
+export function isFilesPage(): boolean {
+  return document.querySelector('#diff-file-boxes') !== null;
+}
+
+function boxFileName(box: Element): string {
+  return box.getAttribute('data-new-filename') || box.getAttribute('data-old-filename') || '';
+}
+
+// clearBulletFilter reverts everything the filter changed: it only touches the diff file boxes'
+// "tw-hidden" class and row-level "tw-hidden"/"review-map-line-highlight" classes inside them.
+// No other feature hides whole rows inside diff file boxes (diff folding uses "data-folded" on the box),
+// so un-hiding every row in every box is safe and keeps the function free of hidden state.
+export function clearBulletFilter(root: Document | HTMLElement): void {
+  for (const box of root.querySelectorAll('#diff-file-boxes .diff-file-box')) {
+    box.classList.remove('tw-hidden');
+    for (const row of box.querySelectorAll('tr')) {
+      row.classList.remove('tw-hidden', 'review-map-line-highlight');
+    }
+  }
+}
+
+function filterBoxRows(box: Element, refs: ReviewMapRef[]): void {
+  let lastRight: number | null = null; // last non-empty new-side line number seen so far
+  let lastCodeRowVisible = false;
+  let pendingTagRows: Element[] = []; // hunk headers waiting for a visible code row after them
+  for (const row of box.querySelectorAll('table.chroma[data-path] tr')) {
+    if (row.classList.contains('add-comment')) {
+      // a comment thread row belongs to the code row right above it
+      if (!lastCodeRowVisible) hideElem(row);
+      continue;
+    }
+    if (row.classList.contains('tag-code')) {
+      // a hunk header is kept only when a code row until the next hunk header is visible
+      for (const tagRow of pendingTagRows) hideElem(tagRow);
+      pendingTagRows = [row];
+      continue;
+    }
+    const lineNumAttr = row.querySelector('td.lines-num-new')?.getAttribute('data-line-num');
+    let lineNum: number | null;
+    if (lineNumAttr) {
+      lineNum = parseInt(lineNumAttr, 10);
+      lastRight = lineNum;
+    } else {
+      lineNum = lastRight; // deletion rows without a new-side number anchor on the previous row
+    }
+    const visible = lineNum !== null && refs.some((ref) => lineNum >= ref.StartLine && lineNum <= ref.EndLine);
+    if (visible) {
+      row.classList.add('review-map-line-highlight');
+      pendingTagRows = []; // their following code row is visible, so the pending headers stay visible
+    } else {
+      hideElem(row);
+    }
+    lastCodeRowVisible = visible;
+  }
+  for (const tagRow of pendingTagRows) hideElem(tagRow);
+}
+
+// applyBulletFilter narrows the diff to the lines implementing one review-map bullet.
+// It returns false when no file box matches any ref of the bullet: the diff is left untouched
+// so the caller can show the fallback and scroll to the first ref's file anchor instead.
+export function applyBulletFilter(bullet: {Refs: ReviewMapRef[]}, root: Document | HTMLElement): boolean {
+  const boxes = Array.from(root.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box'));
+  const refsByBox = boxes.map((box) => ({box, refs: bullet.Refs.filter((ref) => ref.File === boxFileName(box))}));
+  clearBulletFilter(root); // also makes applying another bullet retarget in place
+  if (refsByBox.every((entry) => !entry.refs.length)) return false;
+  for (const {box, refs} of refsByBox) {
+    if (!refs.length) {
+      hideElem(box);
+      continue;
+    }
+    filterBoxRows(box, refs);
+  }
+  return true;
+}
+
+export function initReviewMapPanel() {
+  const panel = document.querySelector<HTMLElement>('#review-map-panel');
+  if (!panel) return;
+  const data = window.config.pageData.reviewMap;
+  if (!data) return;
+
+  addDelegatedEventListener<HTMLInputElement, Event>(panel, 'change', '.review-map-check', (checkbox) => {
+    const bullet = checkbox.closest('.review-map-bullet')!;
+    // fire-and-forget: the checkbox keeps its clicked state, progress counts refresh on the next page load
+    POST(data.toggleUrl, {data: {hash: bullet.getAttribute('data-bullet-hash'), reviewed: checkbox.checked}});
+  });
+
+  if (!isFilesPage()) {
+    // conversation page: remember the clicked bullet and let the files page apply the filter
+    addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
+      if ((e.target as HTMLElement).closest('.review-map-check, .review-map-comment')) return;
+      e.preventDefault();
+      sessionStorage.setItem(filterStorageKey, bullet.getAttribute('data-bullet-index')!);
+      window.location.assign(`${data.issueLink}/files`);
+    });
+    return;
+  }
+
+  const showAllButton = panel.querySelector<HTMLElement>('#review-map-show-all')!;
+  const fallbackBox = panel.querySelector<HTMLElement>('#review-map-fallback')!;
+  const applyBulletByIndex = (index: number) => {
+    hideElem(fallbackBox);
+    const bullet = data.bullets.find((it) => it.Index === index);
+    if (!bullet) return;
+    if (applyBulletFilter(bullet, document)) {
+      showElem(showAllButton);
+    } else {
+      showElem(fallbackBox);
+      const nameHash = bullet.Refs[0]?.NameHash;
+      if (nameHash) document.querySelector(`#diff-${nameHash}`)?.scrollIntoView();
+    }
+  };
+
+  addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
+    if ((e.target as HTMLElement).closest('.review-map-check, .review-map-comment')) return;
+    e.preventDefault();
+    applyBulletByIndex(parseInt(bullet.getAttribute('data-bullet-index')!, 10));
+  });
+
+  showAllButton.addEventListener('click', () => {
+    clearBulletFilter(document);
+    hideElem(showAllButton);
+  });
+
+  const storedIndex = sessionStorage.getItem(filterStorageKey);
+  if (storedIndex !== null) {
+    sessionStorage.removeItem(filterStorageKey); // transient: only the direct navigation applies it
+    applyBulletByIndex(parseInt(storedIndex, 10));
+  }
+}

@@ -34,6 +34,7 @@ interface Window {
         numberOfViewedFiles: number,
       },
       DiffFileTree?: import('./modules/diff-file.ts').DiffFileTreeData,
+      reviewMap?: import('./features/review-map.ts').ReviewMapPageData,
       FolderIcon?: string,
       FolderOpenIcon?: string,
       repoLink?: string,
