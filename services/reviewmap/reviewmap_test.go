@@ -328,6 +328,38 @@ diff --git a/src/snapshots/case1.snap b/src/snapshots/case1.snap
 			},
 		},
 		{
+			name: "ignore glob with ** matches direct children too (gitignore style)",
+			patch: `diff --git a/src/ui.ts b/src/ui.ts
+--- a/src/ui.ts
++++ b/src/ui.ts
+@@ -1,2 +1,3 @@
+ a
++b
+ c
+diff --git a/src/foo.test.snap b/src/foo.test.snap
+--- a/src/foo.test.snap
++++ b/src/foo.test.snap
+@@ -1,2 +1,2 @@
+-old
++new
+ tail
+`,
+			m: &reviewmapmod.Map{
+				Ignore: []string{"src/**/*.snap"},
+				Bullets: []reviewmapmod.Bullet{
+					{Text: "Update UI", Changes: []reviewmapmod.FileRange{{File: "src/ui.ts", StartLine: 1, EndLine: 3}}},
+				},
+			},
+			descBullets: []string{"Update UI"},
+			want: &Result{
+				Bullets: []BulletStatus{
+					bulletStatus(0, "Update UI", false, refStatus("src/ui.ts", 1, 3, true)),
+				},
+				Coverage:    Coverage{TotalChanged: 1, MappedChanged: 1},
+				IgnoreGlobs: []string{"src/**/*.snap"},
+			},
+		},
+		{
 			name:  "two bullets mapping the same line count it once",
 			patch: appTsPatch,
 			m: &reviewmapmod.Map{Bullets: []reviewmapmod.Bullet{

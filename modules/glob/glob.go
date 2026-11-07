@@ -196,6 +196,13 @@ func Compile(pattern string, separators ...rune) (Glob, error) {
 	return initGlobCompiler(&globCompiler{}, pattern, separators)
 }
 
+// CompileGitignore compiles a gitignore-style path glob: "?" and "*" do not
+// cross "/" separators, while "**/" also matches zero path segments, so
+// "src/**/*.snap" matches both "src/a.snap" and "src/a/b/c.snap".
+func CompileGitignore(pattern string) (Glob, error) {
+	return initGlobCompiler(&globCompiler{superWildcardRight: true}, pattern, []rune{'/'})
+}
+
 func CompileWorkflow(pattern string) (Glob, error) {
 	return initGlobCompiler(&globCompiler{
 		regexpQuestion:     true,

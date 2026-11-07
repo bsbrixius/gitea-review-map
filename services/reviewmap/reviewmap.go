@@ -65,7 +65,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 
 	ignoreMatchers := make([]glob.Glob, 0, len(ignoreGlobs))
 	for _, pattern := range ignoreGlobs {
-		if g, err := glob.Compile(pattern, '/'); err == nil { // Parse already rejects invalid globs
+		if g, err := glob.CompileGitignore(pattern); err == nil { // Parse already rejects invalid globs
 			ignoreMatchers = append(ignoreMatchers, g)
 		}
 	}

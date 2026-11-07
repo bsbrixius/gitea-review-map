@@ -179,6 +179,27 @@ func TestGlob(t *testing.T) {
 	}
 }
 
+func TestCompileGitignore(t *testing.T) {
+	for _, test := range []struct {
+		pattern string
+		match   string
+		want    bool
+	}{
+		{pattern: "package-lock.json", match: "package-lock.json", want: true},
+		{pattern: "package-lock.json", match: "sub/package-lock.json", want: false},
+		{pattern: "src/**/*.snap", match: "src/a.test.snap", want: true}, // "**/" matches zero segments
+		{pattern: "src/**/*.snap", match: "src/a/b.test.snap", want: true},
+		{pattern: "src/**/*.snap", match: "test.snap", want: false},
+		{pattern: "*.snap", match: "a/b.test.snap", want: false}, // "*" stays within one segment
+		{pattern: "**/vendor/**", match: "vendor/x/y.js", want: true},
+		{pattern: "**/vendor/**", match: "a/vendor/y.js", want: true},
+	} {
+		g, err := CompileGitignore(test.pattern)
+		require.NoError(t, err, "CompileGitignore(%q)", test.pattern)
+		assert.Equal(t, test.want, g.Match(test.match), "CompileGitignore(%q).Match(%q)", test.pattern, test.match)
+	}
+}
+
 func TestQuoteMeta(t *testing.T) {
 	for id, test := range []struct {
 		in, out string
