@@ -153,6 +153,7 @@ func loadCommonSettingsFrom(cfg ConfigProvider) error {
 	loadAPIFrom(cfg)
 	loadMetricsFrom(cfg)
 	loadCamoFrom(cfg)
+	loadReviewMapFrom(cfg)
 	loadI18nFrom(cfg)
 	loadGitFrom(cfg)
 	loadMirrorFrom(cfg)
