@@ -53,9 +53,10 @@ bullets:
 
 Anatomy of the block:
 
-- The fence line is exactly ` ```review-map ` at the start of a line; the block
-  ends at the next line starting with ` ``` `. The FIRST such block in the body
-  wins; later ones are ignored.
+- The fence line is ` ```review-map ` at the very start of a line (trailing
+  spaces after the info string are tolerated, leading whitespace is not); the
+  block ends at the next line starting with ` ``` `. The FIRST such block in
+  the body wins; later ones are ignored.
 - Top level: `ignore:` and `bullets:` — either order, each at most once, never
   a value after the colon. No other keys, no comments.
 - `ignore:` entries are double-quoted glob strings.
@@ -72,8 +73,10 @@ Format:
   must not contain a double quote — there is no escape syntax. Write the
   description bullets without double quotes in the first place.
 - `bullet:` text must be a byte-exact copy-paste of a top-level description
-  bullet. A mismatch makes the entry an "orphan": it still validates, but the
-  panel shows a warning.
+  bullet, and that bullet must sit outside any code fence (the server skips
+  fenced content when reading the description — a bullet list inside a fence
+  matches nothing). A mismatch makes the entry an "orphan": it still
+  validates, but the panel shows a warning.
 - `file:` is a repo-relative path with forward slashes only: no leading `/`,
   no `..` segment, no backslash, at most 500 characters. Quote it if it
   contains spaces.
@@ -104,21 +107,34 @@ Semantics:
   files (no new-side lines exist), binary files, submodules, plus lockfiles
   and vendored/generated files you touched.
 
-## Common mistakes — each one silently disables the ENTIRE block
+## Common mistakes
+
+### Parse-breaking: the ENTIRE block is silently ignored
 
 The parser is strict by design. Any one of these and the whole block is
-ignored: the PR renders with no map, only a discreet notice. There is no
-partial acceptance.
+treated as absent: the PR renders with no map, only a discreet notice. There
+is no partial acceptance.
 
 - Unquoted bullet text: `- bullet: added stuff` — must be
   `- bullet: "added stuff"`.
-- Old-side line numbers taken from the left gutter. Always the new side.
-- Lockfiles or generated files missing from `ignore` — they wreck coverage.
-- Rewording a description bullet without updating the map — orphan warning.
 - Stray syntax inside the block: comments, tabs, 3-space indents, an unknown
   key, a duplicate `changes:` or top-level key, `lines: 5-2`, `lines: 0`,
   `file: /abs/path`, `file: ../x`, `file: src\x`, an unquoted or invalid
   ignore glob, YAML anchors/aliases/tags (`&x`, `*x`, `!x`).
+- Blowing a limit: a 51st bullet, an 11th file entry in one bullet, or a
+  block over 4 KB.
+
+### Semantic: the map renders, but wrong
+
+These parse fine — the panel still appears, but it misleads reviewers. Fix
+them before requesting review.
+
+- Old-side line numbers taken from the left gutter → those ranges show as
+  invalid references (⚠ badge). Always use the new side.
+- Lockfiles or generated files missing from `ignore` → they count as unmapped
+  and drag coverage down.
+- Rewording a description bullet without updating the map → orphan entries:
+  they still validate, but the panel shows a warning.
 
 ## Keep it fresh
 
