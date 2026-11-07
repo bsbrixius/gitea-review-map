@@ -50,8 +50,8 @@ type fileCoverage struct {
 	path      string // new-side path: Name, falling back to the old name for deletions
 	file      *gitdiff.DiffFile
 	ignored   bool
-	changed   map[int]bool // changed new-side positions; 0 = deletion without a new-side anchor, never coverable
-	hunkSpans [][2]int     // new-side [start, end] of each hunk, from the hunk headers
+	changed   map[int]int // changed lines anchored at each new-side position; 0 = deletion without a new-side anchor, never coverable
+	hunkSpans [][2]int    // new-side [start, end] of each hunk, from the hunk headers
 }
 
 // ComputeResult validates a review map against the diff and computes coverage. Pure: no I/O.
@@ -81,7 +81,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 	filesByPath := map[string]*fileCoverage{}
 	if diff != nil {
 		for _, f := range diff.Files {
-			fc := &fileCoverage{path: diffFilePath(f), file: f, changed: map[int]bool{}}
+			fc := &fileCoverage{path: diffFilePath(f), file: f, changed: map[int]int{}}
 			for _, g := range ignoreMatchers {
 				if g.Match(fc.path) {
 					fc.ignored = true
@@ -98,10 +98,10 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 							fc.hunkSpans = append(fc.hunkSpans, [2]int{l.SectionInfo.RightIdx, end})
 						}
 					case gitdiff.DiffLineAdd:
-						fc.changed[l.RightIdx] = true
+						fc.changed[l.RightIdx]++
 						lastRight = l.RightIdx
 					case gitdiff.DiffLineDel:
-						fc.changed[lastRight] = true // deletions anchor to the nearest preceding new-side line
+						fc.changed[lastRight]++ // deletions anchor to the nearest preceding new-side line
 					case gitdiff.DiffLinePlain:
 						lastRight = l.RightIdx
 					}
@@ -122,9 +122,11 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 		}
 		res.Coverage.TotalChanged += fc.file.Addition + fc.file.Deletion
 		unmapped := false
-		for pos := range fc.changed {
+		// count every changed line whose anchor position falls inside a mapped
+		// range, in the same units as TotalChanged so full coverage is reachable
+		for pos, count := range fc.changed {
 			if coveredByAny(rangesByPath[fc.path], pos) {
-				res.Coverage.MappedChanged++
+				res.Coverage.MappedChanged += count
 			} else {
 				unmapped = true
 			}

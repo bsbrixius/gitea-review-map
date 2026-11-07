@@ -188,7 +188,7 @@ diff --git a/src/snapshots/ui.snap b/src/snapshots/ui.snap
 			},
 		},
 		{
-			name: "deletion anchoring: 2 distinct positions cover 4 changed lines",
+			name: "deletion anchoring: stacked deletions count every changed line, full coverage reachable",
 			patch: `diff --git a/anchor.txt b/anchor.txt
 --- a/anchor.txt
 +++ b/anchor.txt
@@ -209,7 +209,8 @@ diff --git a/src/snapshots/ui.snap b/src/snapshots/ui.snap
 				Bullets: []BulletStatus{
 					bulletStatus(0, "Rework anchor", false, refStatus("anchor.txt", 10, 12, true)),
 				},
-				Coverage: Coverage{TotalChanged: 4, MappedChanged: 2},
+				// 4 changed lines over 2 anchor positions (10: delA+delB, 12: add11+delC), all inside the range
+				Coverage: Coverage{TotalChanged: 4, MappedChanged: 4},
 			},
 		},
 		{
