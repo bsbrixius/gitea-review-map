@@ -5,6 +5,7 @@ package reviewmap
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -297,4 +298,20 @@ func TestExtractDescriptionBullets(t *testing.T) {
 	t.Run("no bullets", func(t *testing.T) {
 		assert.Empty(t, ExtractDescriptionBullets("Plain description without lists.\n"))
 	})
+}
+
+// The skill file ships the example AI authors copy; this pins that its example
+// still parses. "go test" runs with the package dir as cwd, so the repo-root
+// relative path reaches across module directories.
+func TestSkillExampleParses(t *testing.T) {
+	skill, err := os.ReadFile("../../contrib/ai-skills/review-map/SKILL.md")
+	require.NoError(t, err)
+
+	block, status := ExtractBlock(string(skill), 64*1024)
+	require.Equal(t, BlockOK, status)
+
+	m, err := Parse(block, testLimits())
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(m.Bullets), 2)
+	assert.NotEmpty(t, m.Ignore)
 }
