@@ -1347,6 +1347,7 @@ func registerWebRoutes(m *web.Router, webAuth *AuthMiddleware) {
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Post("/pin", reqRepoAdmin, repo.IssuePinOrUnpin)
 				m.Post("/viewed-files", repo.UpdateViewedFiles)
+				m.Post("/review-map/progress", repo.UpdateReviewMapProgress)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
