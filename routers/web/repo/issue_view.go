@@ -380,6 +380,7 @@ func ViewIssue(ctx *context.Context) {
 		prepareFuncs = append(prepareFuncs,
 			prViewInfo.prepareViewInfo,
 			prViewInfo.prepareMergeBox,
+			prepareIssueViewReviewMap,
 		)
 	}
 	for _, prepareFunc := range prepareFuncs {
@@ -449,6 +450,10 @@ func ViewPullMergeBox(ctx *context.Context) {
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(http.StatusOK, tplPullMergeBox)
+}
+
+func prepareIssueViewReviewMap(ctx *context.Context, issue *issues_model.Issue) {
+	PrepareReviewMapData(ctx, issue)
 }
 
 func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model.Issue) {

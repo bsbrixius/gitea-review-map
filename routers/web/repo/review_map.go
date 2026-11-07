@@ -11,6 +11,7 @@ import (
 	"gitea.dev/modules/log"
 	"gitea.dev/modules/setting"
 	"gitea.dev/services/context"
+	"gitea.dev/services/reviewmap"
 )
 
 // reviewMapProgressUpdate Struct to parse the body of a request to update the reviewed bullets of a PR
@@ -46,4 +47,24 @@ func UpdateReviewMapProgress(ctx *context.Context) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// PrepareReviewMapData sets the review-map panel data shared by the PR conversation and files pages.
+// Fail-safe: when the feature is off or anything fails, nothing is set and the pages render upstream-style.
+func PrepareReviewMapData(ctx *context.Context, issue *issues_model.Issue) {
+	if !setting.ReviewMap.Enabled {
+		return
+	}
+	pd := reviewmap.PreparePageData(ctx, ctx.Doer, issue)
+	if pd == nil {
+		return
+	}
+	myReviewed := make(map[string]bool, len(pd.MyReviewed))
+	for _, hash := range pd.MyReviewed {
+		myReviewed[hash] = true
+	}
+	ctx.Data["ReviewMapData"] = pd
+	ctx.Data["ReviewMapMyReviewed"] = myReviewed
+	ctx.Data["ReviewMapUnmappedChanged"] = pd.Coverage.TotalChanged - pd.Coverage.MappedChanged // templates cannot do arithmetic
+	ctx.PageData["reviewMap"] = pd
 }

@@ -48,6 +48,7 @@ type PageData struct {
 	InvalidRefCount int                      `json:"invalidRefCount"`
 	OrphanCount     int                      `json:"orphanCount"`
 	Progress        []UserProgress           `json:"progress"`
+	MyReviewed      []string                 `json:"myReviewed"` // hashes the signed-in user has reviewed; empty when anonymous
 }
 
 // BuildPageData assembles the page data from a computed result plus the loaded
@@ -200,7 +201,22 @@ func PreparePageData(ctx context.Context, doer *user_model.User, issue *issues_m
 
 	pageData := BuildPageData(issue, res, m, progress, users, commentLinks)
 	pageData.CanReview = doer != nil
+	if doer != nil {
+		pageData.MyReviewed = myReviewedHashes(progress, doer.ID)
+	}
 	return pageData
+}
+
+// myReviewedHashes collects the reviewed bullet hashes of one user, sorted for stable output. Pure: no I/O.
+func myReviewedHashes(progress map[int64]map[string]bool, doerID int64) []string {
+	hashes := make([]string, 0, len(progress[doerID]))
+	for hash, reviewed := range progress[doerID] {
+		if reviewed {
+			hashes = append(hashes, hash)
+		}
+	}
+	slices.Sort(hashes)
+	return hashes
 }
 
 func firstValidRef(refs []RefStatus) *RefStatus {

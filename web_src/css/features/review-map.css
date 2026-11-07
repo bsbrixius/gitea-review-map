@@ -1,0 +1,35 @@
+#review-map-panel .review-map-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+#review-map-panel .review-map-check {
+  flex-shrink: 0;
+  margin-top: 3px; /* align the checkbox with the first text line */
+}
+
+#review-map-panel .review-map-bullet-text {
+  overflow-wrap: anywhere; /* long bullet texts must not stretch the panel */
+}
+
+#review-map-panel .review-map-ref,
+#review-map-panel .review-map-comment {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 6px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+#review-map-panel .review-map-comment {
+  color: var(--color-text-light-1);
+}
+
+/* added by JS (review map module) to the diff table rows implementing a bullet */
+.review-map-line-highlight > :first-child {
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}

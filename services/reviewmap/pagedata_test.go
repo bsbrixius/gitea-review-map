@@ -155,3 +155,14 @@ func TestPreparePageDataIgnoredReason(t *testing.T) {
 	assert.Greater(t, len(block), 10)
 	assert.True(t, strings.Contains(block, "bullet"))
 }
+
+func TestMyReviewedHashes(t *testing.T) {
+	// the MyReviewed field is assigned in PreparePageData from the progress map; its
+	// logic lives in this pure helper so it can be covered without I/O
+	progress := map[int64]map[string]bool{
+		1: {"hash-b": true, "hash-a": true, "hash-off": false},
+		2: {"hash-z": true},
+	}
+	assert.Equal(t, []string{"hash-a", "hash-b"}, myReviewedHashes(progress, 1))
+	assert.Empty(t, myReviewedHashes(progress, 9)) // user without progress
+}
