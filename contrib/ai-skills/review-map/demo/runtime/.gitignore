@@ -1,0 +1,5 @@
+# Runtime artifacts of the local demo instance: app.ini, sqlite DB, git data,
+# generated PR body, cookie jars. Everything here is disposable and rebuilt by
+# the scripts + README instructions.
+*
+!.gitignore
