@@ -344,8 +344,10 @@ curl -sS -b "$DEMO_DIR/admin.jar" "$GITEA_URL/$DEMO_OWNER/$REPO/pulls/$PR3" > "$
 curl -sS -b "$DEMO_DIR/admin.jar" "$GITEA_URL/$DEMO_OWNER/$REPO/pulls/$PR4" > "$DEMO_DIR/pr4.html"
 curl -sS -b "$DEMO_DIR/reviewer2.jar" "$GITEA_URL/$DEMO_OWNER/$REPO/pulls/$PR1" > "$DEMO_DIR/pr1-rev2.html"
 
-st=0; grep -q 'id="review-map-panel"' "$DEMO_DIR/pr1.html" || st=1
-check "A2 conversation page renders #review-map-panel" "$st"
+st=0; grep -q 'href="[^"]*/review-map"' "$DEMO_DIR/pr1.html" || st=1
+curl -sS -b "$DEMO_DIR/admin.jar" "$GITEA_URL/$DEMO_OWNER/$REPO/pulls/$PR1/review-map" > "$DEMO_DIR/pr1-tab.html"
+grep -q 'id="review-map-panel"' "$DEMO_DIR/pr1-tab.html" || st=1
+check "A2 conversation slim strip links the tab; tab renders #review-map-panel" "$st"
 st=0; grep -q 'tw-bg-green' "$DEMO_DIR/pr1.html" || st=1; grep -q 'Verified' "$DEMO_DIR/pr1.html" || st=1
 check "A2 badge reads Verified" "$st"
 st=0; grep -qE "0 of $SRC_CHANGED changed lines unmapped" "$DEMO_DIR/pr1.html" || st=1
