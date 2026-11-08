@@ -1,0 +1,61 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <!--
+    Central Package Management (CPM) for PQ-2 (.NET 10 / EF Core 10 modular monolith).
+    Versions resolved against NuGet (resolved U2 / U11) on the .NET 10 line.
+    Add new package versions here only — projects must use <PackageReference Include="..." /> with no Version attribute.
+  -->
+  <ItemGroup>
+    <!-- EF Core + PostgreSQL persistence (SharedKernel.Infrastructure centralization) -->
+    <PackageVersion Include="MediatR" Version="14.1.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.9" />
+    <PackageVersion Include="NSubstitute" Version="5.3.0" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <!-- API / Swagger -->
+    <!-- Swashbuckle 10.x (the .NET 10-compatible line) depends on Microsoft.OpenApi 2.x,
+         which is NOT pulled in transitively by the shared framework — declare it explicitly.
+         Note: in Microsoft.OpenApi 2.x, OpenApiInfo moved from Microsoft.OpenApi.Models
+         to the root Microsoft.OpenApi namespace. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <!-- DI container — host composition root (AutofacServiceProviderFactory, composition only). -->
+    <PackageVersion Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
+    <!-- JWT bearer authentication (host security infrastructure). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
+    <!-- Health checks (framework self-check in PQ-2; Npgsql provider ready for D-1.2) -->
+    <PackageVersion Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
+    <!-- Testing (ArchitectureTests — closes U11; UnitTests — PQ-2 Phase 8) -->
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="FluentAssertions" Version="8.10.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- 3rd-party payment provider SDK — referenced ONLY by the Payments module
+         (consolidated project; Anti-Corruption Layer, PATTERNS.md §2.2). v3.x is the
+         current official line (owner MercadoPago). -->
+    <PackageVersion Include="mercadopago-sdk" Version="3.3.1" />
+    <!-- PQ-63: resilience around the MP HTTP-bound ACL (retries + circuit breaker + timeout).
+         Polly v8 is the de-facto .NET resilience library; Microsoft.Extensions.Resilience is the
+         named-pipeline registry that backs the ServiceDefaults resilience story. Referenced ONLY by
+         the Payments module (consolidated project — ResilientMercadoPagoGateway decorator +
+         PaymentsModule registry). -->
+    <PackageVersion Include="Polly" Version="8.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.Resilience" Version="10.8.0" />
+    <!-- Serilog core — PII redaction policy (IDestructuringPolicy) + console sink,
+         wired in the host composition root (Program.Extensions.cs). -->
+    <PackageVersion Include="Serilog" Version="4.3.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    <!-- Health checks — EF Core DbContext check (PQ-89) -->
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.0" />
+    <!-- Test databases: real PostgreSQL via Docker (no local/file databases). One shared
+         container per test assembly; each fixture gets its own database inside it. -->
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+  </ItemGroup>
+</Project>

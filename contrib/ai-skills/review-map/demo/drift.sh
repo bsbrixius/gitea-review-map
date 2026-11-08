@@ -19,7 +19,7 @@ DEMO_OWNER="${DEMO_OWNER:-demo}"
 : "${DEMO_PASS:?DEMO_PASS (password of $DEMO_OWNER) must be set in the environment}"
 
 REPO=reviewmap-demo
-FILE=src/store/slices/AdvancedQuery.ts   # mapped by bullet 1 of the feature PR
+FILE=src/Common/PraQuando.SharedKernel.Domain/Result.cs   # mapped by bullet 1 of the feature PR
 FAILURES=0
 
 say()  { printf '\n== %s\n' "$*"; }
@@ -38,20 +38,20 @@ say "2. Push a commit that shifts lines (+30 at the top of $FILE)"
 # repeatable: every run pushes another +30-line commit (shifts grow); make-demo.sh resets the PR
 cd "$DEMO_DIR/work"
 PUSH_URL="${GITEA_URL/http:\/\//http:\/\/$DEMO_OWNER:$GITEA_TOKEN@}/$DEMO_OWNER/$REPO.git"
-git fetch -q "$PUSH_URL" feature/advanced-query
-git checkout -qfB feature/advanced-query FETCH_HEAD
+git fetch -q "$PUSH_URL" feature/result-combinators
+git checkout -qfB feature/result-combinators FETCH_HEAD
 # insert 30 lines at the very top: all following new-side numbers shift by +30
 {
   n=0
   while [ $n -lt 30 ]; do
-    printf '// AdvancedQuery design note %d/30: the criteria window is folded lazily; see review-map SKILL.\n' "$n"
+    printf '// Design note %d/30: Result combinators follow the error-flow conventions in PATTERNS.md.\n' "$n"
     n=$((n + 1))
   done
   cat "$FILE"
 } > "$FILE.new"
 mv "$FILE.new" "$FILE"
-git commit -qam "Drift demo: expand module header documentation (+30 lines)"
-git push -q "$PUSH_URL" feature/advanced-query
+git commit -qam "Drift demo: expand file header documentation (+30 lines)"
+git push -q "$PUSH_URL" feature/result-combinators
 note "pushed $(git rev-parse --short HEAD)"
 
 say "3. Verify the panel flipped to invalid (A6)"

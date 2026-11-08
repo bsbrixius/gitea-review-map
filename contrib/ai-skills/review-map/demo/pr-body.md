@@ -1,14 +1,17 @@
 ## Summary
 
-This PR adds the Advanced Query feature end to end: store slice and selectors,
-API client, infinite row datasource integration, hook and component.
+Small, surgical follow-up to the availability work: fluent error combinators on
+the shared Result type, two new availability error codes, a cheap room-count
+read for callers that only need to tell "no rooms" from "no schedule", and a
+past-date guard on the single-date availability entry point. No behavior
+change for successful paths; unit tests cover the new combinators.
 
-- Added Advanced Query slice and selectors to manage state and criteria
-- Updated infinite row datasource to support fetching data from the Advanced Query endpoint
-- Added queryClient API wrapper with batching, retry and typed error handling
-- Added useAdvancedQuery hook with polling and cache invalidation
-- Reworked AppState slice to track query lifecycle bookkeeping
-- Added QueryBuilder component with criteria editing and validation
+- Added Map, Bind and Match combinators to Result for fluent error flows
+- Introduced availability error codes for past-date windows and inactive categories
+- Extended IRoomAvailabilityQuery with CountActiveRoomsAsync and implemented it in Catalog
+- Hardened AvailabilityService against past-date queries with richer no-schedule warnings
+- Added OperatingHoursDto.Covers for open-window checks
+- Added unit tests for the new Result combinators
 
 <!-- make-demo.sh appends the ```review-map block after this comment.
      The block is NOT stored in this template because its `lines:` values are

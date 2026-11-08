@@ -76,7 +76,7 @@ DEFAULT_BRANCH = main
 DISABLE_HTTP_GIT = false
 
 [git]
-MAX_GIT_DIFF_LINES = 10000    ; so the ~3000-line demo PR renders fully
+MAX_GIT_DIFF_LINES = 10000    ; generous headroom so the demo PR renders fully
 MAX_GIT_DIFF_FILES = 1000
 
 [review_map]
@@ -183,21 +183,22 @@ GITEA_TOKEN=<sha1-from-step-3> bash make-demo.sh   # DEMO_PASS/REVIEWER2_PASS fr
 
 What it does (idempotent — it deletes and recreates the repo):
 
-- creates repo `demo/reviewmap-demo` and seeds `main` with 7 TypeScript
-  modules of 500 lines each, a ~960-line `package-lock.json`,
-  `src/foo.test.snap` and a README;
-- branches `feature/advanced-query` touching 6 logical areas across the 7
-  files: **≈3000 source changed lines** (the exact total is computed and
-  printed by the script at runtime; the lockfile and snapshot changes are
-  extra);
+- creates repo `demo/reviewmap-demo` and seeds `main` from
+  `fixtures/main` — real C# sources from the pra-quando-api codebase
+  (SharedKernel + Booking + Catalog files) plus a README;
+- branches `feature/result-combinators` overlaying `fixtures/feature`:
+  surgical changes (new methods, guards, richer warnings, a new test file)
+  across 7 C# files — the kind of diff an AI author produces (the exact
+  changed-line total is computed and printed by the script at runtime;
+  the `Directory.Packages.props` version bump is extra and ignored);
 - computes new-side line ranges from the actual `git diff -U0` output and
   appends the ```review-map block to `pr-body.md`, producing
-  `runtime/demo-work/pr-body-final.md` (the block maps 6 bullets to 32 file
-  ranges and ignores `package-lock.json` + `src/**/*.snap` — authored exactly
-  per `../SKILL.md`, which is what A7 requires);
+  `runtime/demo-work/pr-body-final.md` (the block maps 6 bullets to the
+  files' changed ranges and ignores `Directory.Packages.props` — authored
+  exactly per `../SKILL.md`, which is what A7 requires);
 - opens 4 PRs:
-  - [#1](http://127.0.0.1:3000/demo/reviewmap-demo/pulls/1) the ~3000-line
-    feature PR with the review map,
+  - [#1](http://127.0.0.1:3000/demo/reviewmap-demo/pulls/1) the feature PR
+    (real pra-quando-api diff) with the review map,
   - [#2](http://127.0.0.1:3000/demo/reviewmap-demo/pulls/2) tiny PR, **no block**,
   - [#3](http://127.0.0.1:3000/demo/reviewmap-demo/pulls/3) **malformed** block
     (unquoted bullet),
@@ -218,26 +219,25 @@ GITEA_TOKEN=<sha1> DEMO_PASS=$DEMO_PASS bash drift.sh   # repeatable; each run s
 ```
 
 Pushes one commit inserting 30 lines at the top of
-`src/store/slices/AdvancedQuery.ts`. Every new-side number below shifts by 30,
-so the no-longer-updated ranges `267-294` and `740-767` stop intersecting
-their hunks: the panel badge flips from **Verified** to **2 invalid
-reference(s)** and coverage drops below 100% (the 30 new lines are unmapped).
-The two `src/store/slices/AdvancedQuery.ts:267-294` / `:740-767` links render
-red with an alert icon. Re-running `make-demo.sh` resets the PR to the clean
-state.
+`src/Common/PraQuando.SharedKernel.Domain/Result.cs`. Every new-side number
+below shifts by 30, so the no-longer-updated ranges stop intersecting their
+hunks: the panel badge flips from **Verified** to **N invalid reference(s)**
+and coverage drops below 100% (the 30 new lines are unmapped). The affected
+`Result.cs` links render red with an alert icon. Re-running `make-demo.sh`
+resets the PR to the clean state.
 
 ## 6. Acceptance checklist (A1–A8)
 
 | # | Criterion | How to check |
 |---|-----------|--------------|
 | A1 | fork builds & runs locally, commands documented | Sections 1–3 above; `curl -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/` → `200` |
-| A2 | ~3000-line PR with a review map shows panel + Verified badge + coverage | Open PR #1. Panel "Review Map" above the description, green **Verified** label, "0 of N changed lines unmapped" (N = the source total the script printed; 2989 in the reference run) |
+| A2 | feature PR with a review map shows panel + Verified badge + coverage | Open PR #1. Panel "Review Map" above the description, green **Verified** label, "0 of N changed lines unmapped" (N = the source total the script printed) |
 | A3 | clicking a bullet filters the diff to its mapped lines | Open PR #1, click a bullet in the panel → jumps to Files Changed with only that bullet's file boxes/rows visible (highlighted); "Show all files" restores. Cross-page: on the conversation page the click stores `review-map-filter` in sessionStorage and the files page applies it once |
 | A4 | per-user progress, checkboxes persist | Panel shows `demo 2/6` and `reviewer2 2/6`. Log in as `demo` / `reviewer2` (the exported `DEMO_PASS` / `REVIEWER2_PASS`): each sees only own checkboxes ticked; state survives `docker restart gitea-demo` (sqlite-backed) |
 | A5 | PRs without a block (and malformed / over-limit) render upstream-style | PR #2: no panel, no warning. PR #3/#4: no panel, only the discreet grey note "review-map block ignored: malformed / too_large" |
 | A6 | a line-shifting commit flips the badge to ⚠ invalid | `bash drift.sh`, then look at PR #1: red "2 invalid reference(s)", red file:lines links, coverage < 100% |
 | A7 | SKILL.md-authored PR yields a valid map | The demo PR's body (`runtime/demo-work/pr-body-final.md`) is authored strictly per `../SKILL.md` — bullets byte-exact, new-side ranges from the real diff, lockfile+snapshots ignored — and the panel reads Verified with 0 invalid / 0 orphans, which is the SKILL's self-check |
-| A8 | lockfile covered by an `ignore` glob: 100% coverage, still visible, globs listed | PR #1 panel: "0 of N changed lines unmapped" (N = the script's source total; lockfile/snapshot excluded), `package-lock.json` + `src/**/*.snap` chips under "Ignored globs", and `package-lock.json` is still a file box on the Files Changed tab |
+| A8 | generated file covered by an `ignore` glob: 100% coverage, still visible, glob listed | PR #1 panel: "0 of N changed lines unmapped" (N = the script's source total; the package-props bump excluded), a `Directory.Packages.props` chip under "Ignored globs", and the file is still a box on the Files Changed tab |
 
 Manual A4 walkthrough in a browser: log in as `reviewer2`, open PR #1, tick two
 bullets, reload — they stay ticked; the panel shows `reviewer2 2/6` for
