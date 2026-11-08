@@ -1,4 +1,4 @@
-import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage, setActiveBullet} from './review-map.ts';
+import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
 import {POST} from '../modules/fetch.ts';
 
 vi.mock('../modules/fetch.ts', () => ({
@@ -102,6 +102,8 @@ const pageData = {
   toggleUrl: '/owner/repo/pulls/1/review-map/progress',
   canReview: true,
   myReviewed: [],
+  myApprovedRefs: [],
+  bulletApproval: [{approved: 0, total: 1}, {approved: 0, total: 1}],
   bullets: [bulletA, bulletB],
   commentLinks: {},
   coverage: {TotalChanged: 6, MappedChanged: 5, UnmappedFiles: ['docs/other.md']},
@@ -252,15 +254,17 @@ describe('review-map', {concurrent: false}, () => {
       expect(POST).toHaveBeenCalledWith('/owner/repo/pulls/1/review-map/progress', {data: {hash: 'hash-a', reviewed: false}});
     });
 
-    test('files page: a stored filter index is applied once and the show-all button appears', () => {
+    test('files page: a stored filter index persists until show-all clears it', () => {
       document.body.innerHTML = panelHTML + diffHTML;
       sessionStorage.setItem('review-map-filter', '0');
       initReviewMapPanel();
-      expect(sessionStorage.getItem('review-map-filter')).toBeNull(); // transient
+      expect(sessionStorage.getItem('review-map-filter')).toBe('0'); // reloads stay filtered
       expect(isHidden(document.querySelector('#diff-bbbb')!)).toBeTruthy();
       expect(isHidden(document.querySelector('#a-add-3')!)).toBeFalsy();
       expect(isHidden(document.querySelector('#review-map-show-all')!)).toBeFalsy();
       expect(isHidden(document.querySelector('#review-map-fallback')!)).toBeTruthy();
+      (document.querySelector('#review-map-show-all') as HTMLElement).click();
+      expect(sessionStorage.getItem('review-map-filter')).toBeNull();
     });
 
     test('files page: clicking a bullet applies the filter in place, show-all clears it', () => {
@@ -335,5 +339,19 @@ describe('review map sidebar activation', () => {
     expect(document.querySelector('[data-bullet-index="1"]')!.classList.contains('review-map-active')).toBeTruthy();
     (document.querySelector('#review-map-show-all') as HTMLElement).click();
     expect(document.querySelector('.review-map-active')).toBeFalsy();
+  });
+});
+
+describe('review map approve flow', () => {
+  test('nextUnapprovedBulletIndex skips complete bullets and the current one', () => {
+    const approval = [
+      {approved: 2, total: 2}, // done
+      {approved: 1, total: 3}, // next candidate
+      {approved: 0, total: 0}, // no valid refs: never a candidate
+      {approved: 0, total: 4},
+    ];
+    expect(nextUnapprovedBulletIndex(approval, 3)).toBe(1);
+    expect(nextUnapprovedBulletIndex(approval, 1)).toBe(3);
+    expect(nextUnapprovedBulletIndex([{approved: 1, total: 1}], 0)).toBe(-1);
   });
 });

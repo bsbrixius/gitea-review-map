@@ -73,8 +73,13 @@ func PrepareReviewMapData(ctx *context.Context, issue *issues_model.Issue) {
 	for _, hash := range pd.MyReviewed {
 		myReviewed[hash] = true
 	}
+	myApprovedRefs := make(map[string]bool, len(pd.MyApprovedRefs))
+	for _, key := range pd.MyApprovedRefs {
+		myApprovedRefs[key] = true
+	}
 	ctx.Data["ReviewMapData"] = pd
 	ctx.Data["ReviewMapMyReviewed"] = myReviewed
+	ctx.Data["ReviewMapMyApprovedRefs"] = myApprovedRefs
 	ctx.Data["ReviewMapUnmappedChanged"] = pd.Coverage.TotalChanged - pd.Coverage.MappedChanged // templates cannot do arithmetic
 	ctx.PageData["reviewMap"] = pd
 }

@@ -152,3 +152,19 @@
 .review-map-line-highlight > td:first-child {
   box-shadow: inset 2px 0 0 var(--color-primary);
 }
+
+.review-map-sidebar .review-map-approve-chip {
+  cursor: pointer;
+  border: none;
+}
+
+.review-map-sidebar .review-map-refs > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.review-map-sidebar .review-map-ref-check {
+  flex-shrink: 0;
+}
