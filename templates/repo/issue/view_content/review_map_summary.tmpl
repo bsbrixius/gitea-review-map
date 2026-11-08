@@ -16,7 +16,7 @@
 		{{end}}
 	{{end}}
 </div>
-<div class="tw-text-12 tw-text-grey">{{ctx.Locale.Tr "review_map.coverage_label" (printf "%d" .ReviewMapUnmappedChanged) (printf "%d" .ReviewMapData.Coverage.TotalChanged)}}</div>
+<div class="review-map-coverage">{{ctx.Locale.Tr "review_map.coverage_label" (printf "%d" .ReviewMapUnmappedChanged) (printf "%d" .ReviewMapData.Coverage.TotalChanged)}}</div>
 {{if .ReviewMapData.Progress}}
 	<div class="tw-flex tw-flex-wrap tw-gap-1">
 		{{range .ReviewMapData.Progress}}

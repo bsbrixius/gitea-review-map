@@ -1,6 +1,6 @@
 {{if .ReviewMapData}}
 {{if .ReviewMapData.IgnoredReason}}
-<div class="tw-text-grey">{{ctx.Locale.Tr "review_map.block_ignored" .ReviewMapData.IgnoredReason}}</div>
+<div class="review-map-secondary-text">{{ctx.Locale.Tr "review_map.block_ignored" .ReviewMapData.IgnoredReason}}</div>
 {{else}}
 <div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
 	{{template "repo/issue/view_content/review_map_summary".}}

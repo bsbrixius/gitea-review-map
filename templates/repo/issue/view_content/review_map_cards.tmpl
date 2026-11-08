@@ -11,12 +11,12 @@
 						<span class="review-map-bullet-text" title="{{.Text}}">{{.Text}}</span>
 						{{if .Orphan}}<span class="tw-text-error" title="{{ctx.Locale.Tr "review_map.orphan_warning"}}">{{svg "octicon-alert" 12}}</span>{{end}}
 					</div>
-					{{if .Summary}}<div class="review-map-summary tw-text-grey" title="{{.Summary}}">{{.Summary}}</div>{{end}}
+					{{if .Summary}}<div class="review-map-summary" title="{{.Summary}}">{{.Summary}}</div>{{end}}
 					<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-text-12">
 						<span class="review-map-bullet-stats tw-flex tw-gap-1">
 							<span class="tw-text-green">+{{.AddedLines}}</span>
 							<span class="tw-text-red">−{{.RemovedLines}}</span>
-							<span class="tw-text-grey">{{ctx.Locale.Tr "review_map.bullet_files" (len .Refs)}}</span>
+							<span class="review-map-secondary-text">{{ctx.Locale.Tr "review_map.bullet_files" (len .Refs)}}</span>
 						</span>
 						{{if and $.ReviewMapData.CanReview $approval}}
 							<button type="button" class="review-map-approve-chip ui mini label{{if and (gt $approval.Total 0) (eq $approval.Approved $approval.Total)}} review-map-done tw-bg-green tw-text-white{{end}}" data-approved="{{$approval.Approved}}" data-total="{{$approval.Total}}" title="{{ctx.Locale.Tr "review_map.approve_all_tooltip"}}"><span class="review-map-chip-count">{{$approval.Approved}}/{{$approval.Total}}</span> {{ctx.Locale.Tr "review_map.approved_label"}}</button>
@@ -30,7 +30,7 @@
 									<input type="checkbox" class="review-map-ref-check" data-ref-index="{{$i}}" aria-label="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}" title="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}"{{if index $.ReviewMapMyApprovedRefs (printf "%s:i%d" $bullet.Hash $i)}} checked{{end}}>
 								{{end}}
 								<a class="review-map-ref{{if not $ref.Valid}} tw-text-error{{end}}" href="{{$.Issue.Link}}/files" data-ref-file="{{$ref.File}}" data-ref-start="{{$ref.StartLine}}" data-ref-end="{{$ref.EndLine}}" data-name-hash="{{$ref.NameHash}}">{{$ref.File}}:{{$ref.StartLine}}-{{$ref.EndLine}}{{if not $ref.Valid}} {{svg "octicon-alert" 12}}{{end}}</a>
-								{{if $ref.Note}}<span class="review-map-ref-note tw-text-grey tw-text-12" title="{{$ref.Note}}">— {{$ref.Note}}</span>{{end}}
+								{{if $ref.Note}}<span class="review-map-ref-note" title="{{$ref.Note}}">— {{$ref.Note}}</span>{{end}}
 							</span>
 						{{end}}
 						{{range index $.ReviewMapData.CommentLinks .Hash}}

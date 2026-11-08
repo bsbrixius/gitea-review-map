@@ -12,7 +12,7 @@
 					<div class="tw-flex tw-flex-wrap tw-gap-3 tw-text-12">
 						{{if .ReviewMapData.Coverage.UnmappedFiles}}
 							<details>
-								<summary class="tw-text-grey">{{ctx.Locale.Tr "review_map.unmapped_files"}} ({{len .ReviewMapData.Coverage.UnmappedFiles}})</summary>
+								<summary class="review-map-secondary-text">{{ctx.Locale.Tr "review_map.unmapped_files"}} ({{len .ReviewMapData.Coverage.UnmappedFiles}})</summary>
 								<div class="tw-flex tw-flex-wrap tw-gap-1">
 									{{range .ReviewMapData.Coverage.UnmappedFiles}}
 										<span class="ui small label tw-bg-grey">{{.}}</span>
@@ -22,7 +22,7 @@
 						{{end}}
 						{{if .ReviewMapData.IgnoreGlobs}}
 							<details>
-								<summary class="tw-text-grey">{{ctx.Locale.Tr "review_map.ignored_globs"}}</summary>
+								<summary class="review-map-secondary-text">{{ctx.Locale.Tr "review_map.ignored_globs"}}</summary>
 								<div class="tw-flex tw-flex-wrap tw-gap-1">
 									{{range .ReviewMapData.IgnoreGlobs}}
 										<span class="ui small label">{{.}}</span>
@@ -32,7 +32,7 @@
 						{{end}}
 					</div>
 				{{end}}
-				<div class="tw-text-12 tw-text-grey">{{ctx.Locale.Tr "review_map.tab_hint"}}</div>
+				<div class="review-map-secondary-text tw-text-13">{{ctx.Locale.Tr "review_map.tab_hint"}}</div>
 			</div>
 		{{else}}
 			{{template "repo/issue/view_content/review_map".}}

@@ -292,7 +292,7 @@ tr.review-map-strip > td {
 .review-map-strip-head {
   gap: 6px;
   padding: 3px 8px;
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   font-size: 12px;
   white-space: nowrap;
 }
@@ -323,7 +323,7 @@ tr.review-map-strip > td {
 }
 
 .review-map-strip-text {
-  color: var(--color-text-light-1);
+  color: var(--color-text);
   flex: 1 1 24em;
   overflow-wrap: anywhere;
 }
@@ -351,6 +351,8 @@ tr.review-map-strip > td {
 
 /* sidebar summary echo under each change */
 .review-map-cards .review-map-summary {
+  color: var(--color-text-light-1);
+  font-size: 13px;
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -360,7 +362,7 @@ tr.review-map-strip > td {
 
 /* info glyph beside the strip number: hover peeks the explanation without expanding */
 .review-map-strip-info {
-  color: var(--color-text-light-2);
+  color: var(--color-text-light-1);
   display: inline-flex;
   cursor: help;
 }
@@ -387,5 +389,17 @@ tr.review-map-strip > td {
 
 /* inline file note beside its ref (cards and Review Map tab) */
 .review-map-cards .review-map-ref-note {
+  color: var(--color-text-light-1);
   overflow-wrap: anywhere;
+}
+
+/* readable secondary text: light-1 in both themes (tw-text-grey is a border grey,
+   #3d3f44 in the dark theme — unreadable as text on the card surface) */
+.review-map-secondary-text {
+  color: var(--color-text-light-1);
+}
+
+.review-map-coverage {
+  color: var(--color-text-light-1);
+  font-size: 13px;
 }
