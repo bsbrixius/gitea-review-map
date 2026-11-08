@@ -660,6 +660,10 @@ func ViewPullCommits(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
+	PrepareReviewMapData(ctx, issue) // the tab menu links the Review Map tab on this page too
+	if ctx.Written() {
+		return
+	}
 
 	commits, err := processGitCommits(ctx, prCompareInfo.Commits)
 	if err != nil {

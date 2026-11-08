@@ -15,6 +15,13 @@
 			{{template "shared/misc/tabtitle" (ctx.Locale.Tr "repo.pulls.tab_files")}}
 			<span class="ui small label">{{if .NumFiles}}{{.NumFiles}}{{else}}-{{end}}</span>
 		</a>
+		{{if and .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
+			<a class="item {{if .PageIsPullReviewMap}}active{{end}}" href="{{.Issue.Link}}/review-map">
+				{{svg "octicon-tasklist"}}
+				{{template "shared/misc/tabtitle" (ctx.Locale.Tr "review_map.panel_title")}}
+				{{if gt .ReviewMapData.FlaggedCount 0}}<span class="ui small label tw-bg-red tw-text-white">{{.ReviewMapData.FlaggedCount}}</span>{{end}}
+			</a>
+		{{end}}
 		{{if or .DiffShortStat.TotalAddition .DiffShortStat.TotalDeletion}}
 			{{template "repo/diff/stats" dict "Addition" .DiffShortStat.TotalAddition "Deletion" .DiffShortStat.TotalDeletion "Classes" "tw-ml-auto tw-pl-3 tw-font-semibold"}}
 		{{end}}

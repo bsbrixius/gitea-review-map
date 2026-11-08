@@ -331,3 +331,8 @@ tr.review-map-strip > td {
 .review-map-bullet.review-map-is-flagged {
   border-color: var(--color-red);
 }
+
+/* the Review Map tab: full-width change cards */
+.review-map-tab {
+  max-width: 900px;
+}

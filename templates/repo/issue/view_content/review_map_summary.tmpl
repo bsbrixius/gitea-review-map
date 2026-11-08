@@ -1,0 +1,26 @@
+{{/* shared summary header: badges + coverage + per-reviewer progress */}}
+<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
+	<div class="tw-font-semibold">{{ctx.Locale.Tr "review_map.panel_title"}}</div>
+	{{if and (eq .ReviewMapData.InvalidRefCount 0) (eq .ReviewMapData.OrphanCount 0)}}
+		<span class="ui small label tw-bg-green tw-text-white">{{svg "octicon-check" 12}} {{ctx.Locale.Tr "review_map.verified"}}</span>
+	{{end}}
+	{{if gt .ReviewMapData.FlaggedCount 0}}
+		<span class="ui small label tw-bg-red tw-text-white" title="{{ctx.Locale.Tr "review_map.flagged_tooltip"}}">{{svg "octicon-flag" 12}} {{ctx.Locale.Tr "review_map.flagged_label" .ReviewMapData.FlaggedCount}}</span>
+	{{end}}
+	{{if or (gt .ReviewMapData.InvalidRefCount 0) (gt .ReviewMapData.OrphanCount 0)}}
+		{{if gt .ReviewMapData.InvalidRefCount 0}}
+			<span class="ui small label tw-bg-red tw-text-white">{{svg "octicon-alert" 12}} {{ctx.Locale.Tr "review_map.invalid_refs" .ReviewMapData.InvalidRefCount}}</span>
+		{{end}}
+		{{if gt .ReviewMapData.OrphanCount 0}}
+			<span class="ui small label">{{svg "octicon-alert" 12}} {{ctx.Locale.Tr "review_map.orphan_refs" .ReviewMapData.OrphanCount}}</span>
+		{{end}}
+	{{end}}
+</div>
+<div class="tw-text-12 tw-text-grey">{{ctx.Locale.Tr "review_map.coverage_label" (printf "%d" .ReviewMapUnmappedChanged) (printf "%d" .ReviewMapData.Coverage.TotalChanged)}}</div>
+{{if .ReviewMapData.Progress}}
+	<div class="tw-flex tw-flex-wrap tw-gap-1">
+		{{range .ReviewMapData.Progress}}
+			<span class="ui small label">{{.Name}} {{ctx.Locale.Tr "review_map.progress_label" .Done .Total}}</span>
+		{{end}}
+	</div>
+{{end}}

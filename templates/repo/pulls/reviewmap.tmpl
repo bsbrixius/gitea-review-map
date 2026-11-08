@@ -1,0 +1,42 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content repository view issue pull reviewmap">
+	{{template "repo/header" .}}
+	<div class="ui container fluid padded">
+		{{template "repo/issue/view_title" .}}
+		{{template "repo/pulls/tab_menu" .}}
+		{{if and .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
+			<div id="review-map-panel" data-issue-link="{{.Issue.Link}}" class="review-map-tab ui segment tw-flex tw-flex-col tw-gap-3">
+				{{template "repo/issue/view_content/review_map_summary".}}
+				{{template "repo/issue/view_content/review_map_cards".}}
+				{{if or .ReviewMapData.Coverage.UnmappedFiles .ReviewMapData.IgnoreGlobs}}
+					<div class="tw-flex tw-flex-wrap tw-gap-3 tw-text-12">
+						{{if .ReviewMapData.Coverage.UnmappedFiles}}
+							<details>
+								<summary class="tw-text-grey">{{ctx.Locale.Tr "review_map.unmapped_files"}} ({{len .ReviewMapData.Coverage.UnmappedFiles}})</summary>
+								<div class="tw-flex tw-flex-wrap tw-gap-1">
+									{{range .ReviewMapData.Coverage.UnmappedFiles}}
+										<span class="ui small label tw-bg-grey">{{.}}</span>
+									{{end}}
+								</div>
+							</details>
+						{{end}}
+						{{if .ReviewMapData.IgnoreGlobs}}
+							<details>
+								<summary class="tw-text-grey">{{ctx.Locale.Tr "review_map.ignored_globs"}}</summary>
+								<div class="tw-flex tw-flex-wrap tw-gap-1">
+									{{range .ReviewMapData.IgnoreGlobs}}
+										<span class="ui small label">{{.}}</span>
+									{{end}}
+								</div>
+							</details>
+						{{end}}
+					</div>
+				{{end}}
+				<div class="tw-text-12 tw-text-grey">{{ctx.Locale.Tr "review_map.tab_hint"}}</div>
+			</div>
+		{{else}}
+			{{template "repo/issue/view_content/review_map".}}
+		{{end}}
+	</div>
+</div>
+{{template "base/footer" .}}
