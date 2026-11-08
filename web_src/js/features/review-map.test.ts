@@ -425,6 +425,7 @@ describe('plain-english strips', () => {
     expect(stripA.querySelector('.review-map-strip-title')!.textContent).toBe('Add the feature');
     expect(stripA.querySelector('.review-map-strip-text')!.textContent).toBe('Change-level text A.'); // no note -> summary
     expect(stripA.querySelector('.review-map-strip-no')!.textContent).toBe('1');
+    expect(stripA.querySelector('.review-map-strip-info')!.getAttribute('title')).toBe('Change-level text A.');
     expect(stripA.querySelector('.review-map-strip-more')!.classList.contains('tw-hidden')).toBeFalsy(); // has details
     const stripB = document.querySelector('#diff-bbbb tr.review-map-strip[data-bullet-index="1"]')!;
     expect((stripB.nextElementSibling as HTMLElement).id).toBe('b-add-1');

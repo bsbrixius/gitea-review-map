@@ -169,10 +169,14 @@ function makeStripRow(bullet: ReviewMapBullet, noteRef: ReviewMapRef | null): HT
   row.className = 'review-map-strip';
   row.setAttribute('data-bullet-index', String(bullet.Index));
   const hasDetails = Boolean(bullet.Details?.length);
+  const body = noteRef?.Note || bullet.Summary || '';
   row.innerHTML = `
     <td class="lines-num review-map-strip-num" aria-hidden="true"></td>
     <td colspan="5" class="lines-code review-map-strip-cell">
-      <span class="review-map-strip-head"><span class="review-map-strip-no">${bullet.Index + 1}</span></span>
+      <span class="review-map-strip-head">
+        <span class="review-map-strip-no">${bullet.Index + 1}</span>
+        <span class="review-map-strip-info${body ? '' : ' tw-hidden'}" title="${body.replace(/"/g, '&quot;')}" aria-label="${body.replace(/"/g, '&quot;')}">${tpl?.querySelector('.review-map-strip-info-icon')?.outerHTML || 'ⓘ'}</span>
+      </span>
       <span class="review-map-strip-body">
         <span class="review-map-strip-title"></span>
         <span class="review-map-strip-text"></span>
@@ -182,7 +186,7 @@ function makeStripRow(bullet: ReviewMapBullet, noteRef: ReviewMapRef | null): HT
       <span class="review-map-strip-details tw-hidden"></span>
     </td>`;
   row.querySelector('.review-map-strip-title')!.textContent = bullet.Text;
-  row.querySelector('.review-map-strip-text')!.textContent = noteRef?.Note || bullet.Summary || '';
+  row.querySelector('.review-map-strip-text')!.textContent = body;
   const more = row.querySelector<HTMLElement>('.review-map-strip-more');
   if (hasDetails) {
     more?.classList.remove('tw-hidden');

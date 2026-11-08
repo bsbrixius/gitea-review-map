@@ -173,5 +173,6 @@ export function initDiffSidebars() {
     localUserSettings.setBoolean(mapHiddenKey, hidden);
   };
   toggleBtn.addEventListener('click', () => setHidden(!map.classList.contains('tw-hidden')));
-  if (localUserSettings.getBoolean(mapHiddenKey, false)) setHidden(true);
+  // always run once: it also unhides the state icon (the template ships with both hidden)
+  setHidden(localUserSettings.getBoolean(mapHiddenKey, false));
 }

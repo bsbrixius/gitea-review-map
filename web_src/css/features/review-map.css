@@ -309,3 +309,10 @@ tr.review-map-strip > td {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* info glyph beside the strip number: hover peeks the explanation without expanding */
+.review-map-strip-info {
+  color: var(--color-text-light-2);
+  display: inline-flex;
+  cursor: help;
+}
