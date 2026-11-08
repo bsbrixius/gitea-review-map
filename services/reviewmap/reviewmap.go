@@ -19,6 +19,7 @@ type RefStatus struct {
 	NameHash           string
 	StartLine, EndLine int
 	Valid              bool
+	Note               string
 }
 
 type BulletStatus struct {
@@ -26,6 +27,8 @@ type BulletStatus struct {
 	Hash, Text string
 	Orphan     bool
 	Refs       []RefStatus
+	Summary    string
+	Details    []string
 	// changed lines attributed to this bullet (earliest covering bullet wins an overlap)
 	AddedLines, RemovedLines int
 }
@@ -160,7 +163,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 	res.Bullets = make([]BulletStatus, len(bullets))
 	for i, b := range bullets {
 		bs := &res.Bullets[i]
-		bs.Index, bs.Hash, bs.Text = i, HashBullet(b.Text), b.Text
+		bs.Index, bs.Hash, bs.Text, bs.Summary, bs.Details = i, HashBullet(b.Text), b.Text, b.Summary, b.Details
 		bs.Orphan = !descriptionSet[b.Text]
 		if bs.Orphan {
 			res.OrphanCount++
@@ -168,7 +171,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 		bs.Refs = make([]RefStatus, len(b.Changes))
 		for j, r := range b.Changes {
 			ref := &bs.Refs[j]
-			ref.File, ref.NameHash = r.File, git.HashFilePathForWebUI(r.File)
+			ref.File, ref.NameHash, ref.Note = r.File, git.HashFilePathForWebUI(r.File), r.Note
 			ref.StartLine, ref.EndLine = r.StartLine, r.EndLine
 			fc := filesByPath[r.File]
 			ref.Valid = fc != nil && !fc.ignored && intersectsAnySpan(fc.hunkSpans, r.StartLine, r.EndLine)

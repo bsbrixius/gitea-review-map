@@ -599,3 +599,19 @@ diff --git a/other.ts b/other.ts
 		})
 	}
 }
+
+const appTsPatchText = "diff --git a/app.ts b/app.ts\n--- a/app.ts\n+++ b/app.ts\n@@ -1,2 +1,3 @@\n a\n+b\n c\n"
+
+func TestComputeResultCarriesSummaries(t *testing.T) {
+	res := ComputeResult(&reviewmapmod.Map{Bullets: []reviewmapmod.Bullet{{
+		Text:    "With docs",
+		Summary: "Change-level explanation.",
+		Details: []string{"Line one.", "Line two."},
+		Changes: []reviewmapmod.FileRange{{File: "app.ts", StartLine: 1, EndLine: 3, Note: "File-level explanation."}},
+	}}}, parsePatchForTest(t, appTsPatchText), []string{"With docs"})
+	require.Len(t, res.Bullets, 1)
+	assert.Equal(t, "Change-level explanation.", res.Bullets[0].Summary)
+	assert.Equal(t, []string{"Line one.", "Line two."}, res.Bullets[0].Details)
+	require.Len(t, res.Bullets[0].Refs, 1)
+	assert.Equal(t, "File-level explanation.", res.Bullets[0].Refs[0].Note)
+}
