@@ -4,6 +4,7 @@
 	<div class="review-map-sidebar-header">
 		<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
 			<div class="tw-font-semibold">{{ctx.Locale.Tr "review_map.panel_title"}}</div>
+			<button id="review-map-hide" type="button" class="btn interact-fg tw-ml-auto" title="{{ctx.Locale.Tr "review_map.hide_panel"}}" aria-label="{{ctx.Locale.Tr "review_map.hide_panel"}}">{{svg "octicon-chevron-left" 14}}</button>
 			{{if and (eq .ReviewMapData.InvalidRefCount 0) (eq .ReviewMapData.OrphanCount 0)}}
 				<span class="ui small label tw-bg-green tw-text-white">{{svg "octicon-check" 12}} {{ctx.Locale.Tr "review_map.verified"}}</span>
 			{{else}}
@@ -34,7 +35,7 @@
 					<span class="review-map-bullet-no" aria-hidden="true"></span>
 					<div class="tw-min-w-0 tw-flex tw-flex-col tw-gap-1">
 						<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
-							<span class="review-map-bullet-text">{{.Text}}</span>
+							<span class="review-map-bullet-text" title="{{.Text}}">{{.Text}}</span>
 							{{if .Orphan}}<span class="tw-text-error" title="{{ctx.Locale.Tr "review_map.orphan_warning"}}">{{svg "octicon-alert" 12}}</span>{{end}}
 						</div>
 						<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-text-12">

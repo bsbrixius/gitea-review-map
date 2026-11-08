@@ -168,3 +168,41 @@
 .review-map-sidebar .review-map-ref-check {
   flex-shrink: 0;
 }
+
+/* horizontal drag handle on the left diff sidebars (review map, file tree) */
+.diff-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.diff-sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  border-radius: 2px;
+  background: transparent;
+}
+
+.diff-sidebar-resizer:hover::after,
+.diff-sidebar-resizer:active::after {
+  background: var(--color-secondary);
+}
+
+/* long bullet texts clamp to two lines with an ellipsis; the title carries the full text */
+.review-map-sidebar .review-map-bullet-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .diff-sidebar-resizer {
+    display: none; /* sidebars stack on mobile: nothing to resize */
+  }
+}
