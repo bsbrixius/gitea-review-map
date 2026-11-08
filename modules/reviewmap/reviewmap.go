@@ -106,7 +106,7 @@ func ExtractDescriptionBullets(content string) []string {
 // anchor/alias/tag-like value, bad range, >limits, invalid glob) → error →
 // caller ignores the whole block.
 func Parse(block string, limits Limits) (*Map, error) {
-	p := &blockParser{m: &Map{Ignore: []string{}, Bullets: []Bullet{}}, limits: limits, seenKeys: map[string]bool{}}
+	p := &blockParser{m: &Map{Ignore: []string{}, Bullets: []Bullet{}}, limits: limits, seenKeys: map[string]bool{}, seenTexts: map[string]bool{}}
 	for i, raw := range strings.Split(block, "\n") {
 		if err := p.parseLine(strings.TrimRight(raw, " \t\r")); err != nil {
 			return nil, fmt.Errorf("Parse: line %d: %w", i+1, err)
@@ -119,9 +119,10 @@ func Parse(block string, limits Limits) (*Map, error) {
 }
 
 type blockParser struct {
-	m        *Map
-	limits   Limits
-	seenKeys map[string]bool
+	m         *Map
+	limits    Limits
+	seenKeys  map[string]bool
+	seenTexts map[string]bool
 
 	section       string // "", "ignore" or "bullets"
 	curBullet     *Bullet
@@ -205,6 +206,13 @@ func (p *blockParser) parseBulletItem(rest string) error {
 	if err != nil {
 		return err
 	}
+	if text == "" {
+		return errors.New("bullet text must not be empty")
+	}
+	if p.seenTexts[text] {
+		return fmt.Errorf("duplicate bullet text %q", text)
+	}
+	p.seenTexts[text] = true
 	p.m.Bullets = append(p.m.Bullets, Bullet{Text: text, Changes: []FileRange{}})
 	if len(p.m.Bullets) > p.limits.MaxBullets {
 		return fmt.Errorf("too many bullets (%d > limit %d)", len(p.m.Bullets), p.limits.MaxBullets)
@@ -244,6 +252,9 @@ func (p *blockParser) parseFileLine(line string) error {
 	value := line[len("- file:"):]
 	if value == "" || value[0] != ' ' {
 		return fmt.Errorf(`expected "- file: <path>", got %q`, line)
+	}
+	if strings.HasPrefix(value[1:], " ") {
+		return fmt.Errorf(`file path must not start with a space, got %q`, line)
 	}
 	file, err := parseFilePath(value[1:])
 	if err != nil {
