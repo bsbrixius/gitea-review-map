@@ -174,6 +174,28 @@ export function initReviewMapPanel() {
   };
 
   const totalBoxCount = document.querySelectorAll('#diff-file-boxes .diff-file-box').length;
+  // notify other modules (the file tree narrows to the visible boxes)
+  const notifyFilterChanged = () => {
+    document.dispatchEvent(new CustomEvent('review-map:filter-changed'));
+  };
+
+  // "Approve change" next to the Review button: approves every file of the selected change
+  const approveChangeButton = (() => {
+    const reviewBox = document.querySelector('#review-box');
+    if (!reviewBox || !data.canReview) return null;
+    const tpl = panel.querySelector('#review-map-approve-change-tpl');
+    const button = document.createElement('button');
+    button.id = 'review-map-approve-change';
+    button.type = 'button';
+    button.className = 'ui tiny green button tw-mr-2';
+    button.textContent = tpl?.getAttribute('data-label') || 'Approve change';
+    const tooltip = tpl?.getAttribute('data-tooltip');
+    if (tooltip) button.title = tooltip;
+    button.setAttribute('hidden', 'hidden'); // only visible while a change is selected
+    reviewBox.before(button);
+    return button;
+  })();
+
   const applyBulletByIndex = (index: number) => {
     hideElem(fallbackBox);
     const bullet = data.bullets.find((it) => it.Index === index);
@@ -184,14 +206,21 @@ export function initReviewMapPanel() {
       sessionStorage.setItem(filterStorageKey, String(index)); // reloads keep the active filter
       const visibleCount = document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)').length;
       showBulletStats(bullet, visibleCount, totalBoxCount);
+      if (approveChangeButton) {
+        approveChangeButton.removeAttribute('hidden');
+        const activeChip = panel.querySelector('.review-map-bullet.review-map-active .review-map-approve-chip');
+        approveChangeButton.classList.toggle('review-map-change-done', Boolean(activeChip?.classList.contains('review-map-done')));
+      }
       document.querySelector('tr.review-map-line-highlight')?.scrollIntoView({block: 'center'});
     } else {
       setActiveBullet(panel, null);
       restoreStats();
+      if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
       showElem(fallbackBox);
       const nameHash = bullet.Refs[0]?.NameHash;
       if (nameHash) document.querySelector(`#diff-${nameHash}`)?.scrollIntoView();
     }
+    notifyFilterChanged();
   };
 
   addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
@@ -235,19 +264,33 @@ export function initReviewMapPanel() {
     maybeAdvance(bullet);
   });
 
-  addDelegatedEventListener<HTMLButtonElement, MouseEvent>(panel, 'click', '.review-map-approve-chip', (chip, e) => {
-    e.preventDefault();
-    const bullet = chip.closest('.review-map-bullet') as HTMLElement;
+  // approve (or clear) every valid file reference of one change card
+  const approveAllRefs = (bullet: HTMLElement, target: boolean) => {
     const hash = bullet.getAttribute('data-bullet-hash')!;
-    const checks = Array.from(bullet.querySelectorAll<HTMLInputElement>('.review-map-ref-check'));
-    const target = chip.getAttribute('data-approved') !== chip.getAttribute('data-total'); // approve all unless everything is approved
-    for (const check of checks) {
+    for (const check of Array.from(bullet.querySelectorAll<HTMLInputElement>('.review-map-ref-check'))) {
       if (check.checked === target) continue;
       check.checked = target;
       POST(data.toggleUrl, {data: {hash, refIndex: parseInt(check.getAttribute('data-ref-index')!, 10), reviewed: target}});
     }
     refreshChip(bullet);
+  };
+
+  addDelegatedEventListener<HTMLButtonElement, MouseEvent>(panel, 'click', '.review-map-approve-chip', (chip, e) => {
+    e.preventDefault();
+    const bullet = chip.closest('.review-map-bullet') as HTMLElement;
+    const target = chip.getAttribute('data-approved') !== chip.getAttribute('data-total'); // approve all unless everything is approved
+    approveAllRefs(bullet, target);
     if (target) maybeAdvance(bullet);
+  });
+
+  approveChangeButton?.addEventListener('click', () => {
+    const active = panel.querySelector<HTMLElement>('.review-map-bullet.review-map-active');
+    if (!active) return;
+    const chip = active.querySelector<HTMLElement>('.review-map-approve-chip');
+    const target = chip ? chip.getAttribute('data-approved') !== chip.getAttribute('data-total') : true;
+    approveAllRefs(active, target);
+    approveChangeButton.classList.toggle('review-map-change-done', target);
+    if (target) maybeAdvance(active);
   });
 
   showAllButton.addEventListener('click', () => {
@@ -255,7 +298,9 @@ export function initReviewMapPanel() {
     hideElem(showAllButton);
     setActiveBullet(panel, null);
     restoreStats();
+    if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
     sessionStorage.removeItem(filterStorageKey);
+    notifyFilterChanged();
   });
 
   const storedIndex = sessionStorage.getItem(filterStorageKey);

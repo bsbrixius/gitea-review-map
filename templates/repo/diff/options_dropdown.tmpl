@@ -13,6 +13,14 @@
 		{{end}}
 		<a id="expand-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.expand_files"}}</a>
 		<a id="collapse-files-btn" class="item">{{ctx.Locale.Tr "repo.pulls.collapse_files"}}</a>
+		{{if and .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
+			<div class="item review-map-tree-mode-item">
+				<label class="tw-flex tw-items-center tw-gap-2 tw-pointer-events-none">
+					<input id="review-map-tree-toggle" type="checkbox" class="tw-pointer-events-auto">
+					{{ctx.Locale.Tr "review_map.tree_dim_others"}}
+				</label>
+			</div>
+		{{end}}
 		{{if .Issue.Index}}
 			{{if .ShowOutdatedComments}}
 				<a class="item" href="?style={{if $.IsSplitStyle}}split{{else}}unified{{end}}&whitespace={{$.WhitespaceBehavior}}&show-outdated=false">

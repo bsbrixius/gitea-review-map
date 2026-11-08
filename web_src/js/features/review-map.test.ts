@@ -1,4 +1,6 @@
 import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
+import {applyTreeFilter} from './diff-sidebars.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 import {POST} from '../modules/fetch.ts';
 
 vi.mock('../modules/fetch.ts', () => ({
@@ -353,5 +355,56 @@ describe('review map approve flow', () => {
     expect(nextUnapprovedBulletIndex(approval, 3)).toBe(1);
     expect(nextUnapprovedBulletIndex(approval, 1)).toBe(3);
     expect(nextUnapprovedBulletIndex([{approved: 1, total: 1}], 0)).toBe(-1);
+  });
+});
+
+describe('file tree narrowing', () => {
+  const treeHTML = `
+<div id="diff-file-tree">
+  <a class="item-file" href="#diff-aaaa">a.ts</a>
+  <div>
+    <div class="item-directory">src</div>
+    <div class="sub-items">
+      <a class="item-file" href="#diff-bbbb">b.ts</a>
+      <a class="item-file" href="#diff-cccc">c.ts</a>
+    </div>
+  </div>
+</div>`;
+
+  test('hide mode (default): non-change files and fully-excluded directories disappear', () => {
+    document.body.innerHTML = treeHTML;
+    const tree = document.querySelector('#diff-file-tree') as HTMLElement;
+    applyTreeFilter(tree, new Set(['bbbb']));
+    expect(tree.classList.contains('review-map-tree-hide')).toBeTruthy();
+    expect(document.querySelector('[href="#diff-aaaa"]')!.classList.contains('review-map-tree-excluded')).toBeTruthy();
+    expect(document.querySelector('[href="#diff-bbbb"]')!.classList.contains('review-map-tree-excluded')).toBeFalsy();
+    expect(document.querySelector('[href="#diff-cccc"]')!.classList.contains('review-map-tree-excluded')).toBeTruthy();
+    // b.ts inside src/ is part of the change: the directory stays visible
+    expect(document.querySelector('.item-directory')!.classList.contains('review-map-tree-excluded')).toBeFalsy();
+    // a change that touches nothing under src/ excludes the directory too
+    applyTreeFilter(tree, new Set(['dddd']));
+    expect(document.querySelector('.item-directory')!.classList.contains('review-map-tree-excluded')).toBeTruthy();
+  });
+
+  test('dim mode: excluded rows keep the class and the tree root switches mode class', () => {
+    document.body.innerHTML = treeHTML;
+    const tree = document.querySelector('#diff-file-tree') as HTMLElement;
+    window.config.pageData = window.config.pageData ?? {};
+    localUserSettings.setBoolean('review-map-tree-dim-others', true);
+    applyTreeFilter(tree, new Set(['bbbb', 'cccc']));
+    expect(tree.classList.contains('review-map-tree-dim')).toBeTruthy();
+    expect(tree.classList.contains('review-map-tree-hide')).toBeFalsy();
+    expect(document.querySelector('.item-directory')!.classList.contains('review-map-tree-excluded')).toBeFalsy();
+    localUserSettings.setBoolean('review-map-tree-dim-others', false);
+  });
+
+  test('null set clears every mark and both mode classes', () => {
+    document.body.innerHTML = treeHTML;
+    const tree = document.querySelector('#diff-file-tree') as HTMLElement;
+    applyTreeFilter(tree, new Set(['bbbb']));
+    applyTreeFilter(tree, null);
+    expect(tree.querySelectorAll('.review-map-tree-excluded')).toHaveLength(0);
+    expect(tree.classList.contains('review-map-tree-hide')).toBeFalsy();
+    expect(tree.classList.contains('review-map-tree-dim')).toBeFalsy();
   });
 });

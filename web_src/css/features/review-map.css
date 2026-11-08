@@ -11,6 +11,11 @@
 
 #review-map-panel .review-map-bullet-text {
   overflow-wrap: anywhere; /* long bullet texts must not stretch the panel */
+  /* clamp to two lines with an ellipsis; the title carries the full text */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 #review-map-panel .review-map-ref,
@@ -193,16 +198,31 @@
   background: var(--color-secondary);
 }
 
-/* long bullet texts clamp to two lines with an ellipsis; the title carries the full text */
-.review-map-sidebar .review-map-bullet-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 @media (max-width: 767px) {
   .diff-sidebar-resizer {
     display: none; /* sidebars stack on mobile: nothing to resize */
   }
+}
+
+/* file-tree narrowing while a review-map change is selected (mode picked in Diff Options) */
+#diff-file-tree.review-map-tree-hide a.item-file.review-map-tree-excluded,
+#diff-file-tree.review-map-tree-hide .item-directory.review-map-tree-excluded {
+  display: none;
+}
+
+#diff-file-tree.review-map-tree-dim a.item-file.review-map-tree-excluded,
+#diff-file-tree.review-map-tree-dim .item-directory.review-map-tree-excluded {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+#review-map-panel .review-map-ref {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "Approve change" button next to Review: muted once the selected change is fully approved */
+#review-map-approve-change.review-map-change-done {
+  opacity: 0.6;
 }
