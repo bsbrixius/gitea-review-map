@@ -75,7 +75,9 @@ function enableHorizontalResize(sidebar: HTMLElement, storageKey: string, min: n
 
 // --- file-tree narrowing while a review-map change is selected -----------------
 
-// markTreeItem returns whether the item is fully outside the selected change.
+// markTreeItem returns whether the item is fully outside the selected change. It handles
+// file anchors, directory rows (.item-directory + .sub-items) and plain containers such
+// as the Vue app's .diff-file-tree-items wrapper.
 function markTreeItem(el: Element, visible: Set<string>): boolean {
   if (el.classList.contains('item-file')) {
     const hash = (el.getAttribute('href') || '').replace('#diff-', '');
@@ -85,13 +87,22 @@ function markTreeItem(el: Element, visible: Set<string>): boolean {
   }
   const sub = el.querySelector(':scope > .sub-items');
   const dirRow = el.querySelector(':scope > .item-directory');
-  if (!sub || !dirRow) return false;
-  let allExcluded = sub.children.length > 0;
-  for (const child of sub.children) {
+  if (sub && dirRow) {
+    let allExcluded = sub.children.length > 0;
+    for (const child of sub.children) {
+      if (!markTreeItem(child, visible)) allExcluded = false;
+    }
+    dirRow.classList.toggle('review-map-tree-excluded', allExcluded);
+    return allExcluded;
+  }
+  let allExcluded = true;
+  let hasTreeItems = false;
+  for (const child of el.children) {
+    if (child.classList.contains('diff-sidebar-resizer')) continue;
+    hasTreeItems = true;
     if (!markTreeItem(child, visible)) allExcluded = false;
   }
-  dirRow.classList.toggle('review-map-tree-excluded', allExcluded);
-  return allExcluded;
+  return hasTreeItems && allExcluded;
 }
 
 // applyTreeFilter narrows the file tree to the visible diff boxes (by their #diff-<hash>

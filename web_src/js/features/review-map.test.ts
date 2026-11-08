@@ -361,12 +361,14 @@ describe('review map approve flow', () => {
 describe('file tree narrowing', () => {
   const treeHTML = `
 <div id="diff-file-tree">
-  <a class="item-file" href="#diff-aaaa">a.ts</a>
-  <div>
-    <div class="item-directory">src</div>
-    <div class="sub-items">
-      <a class="item-file" href="#diff-bbbb">b.ts</a>
-      <a class="item-file" href="#diff-cccc">c.ts</a>
+  <div class="diff-file-tree-items">
+    <a class="item-file" href="#diff-aaaa">a.ts</a>
+    <div>
+      <div class="item-directory">src</div>
+      <div class="sub-items">
+        <a class="item-file" href="#diff-bbbb">b.ts</a>
+        <a class="item-file" href="#diff-cccc">c.ts</a>
+      </div>
     </div>
   </div>
 </div>`;
