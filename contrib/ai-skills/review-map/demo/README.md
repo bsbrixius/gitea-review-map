@@ -119,8 +119,8 @@ LEVEL = Info
 ENABLE_SSH_LOG = false
 
 [ui]
-DEFAULT_THEME = gitea
-THEMES = gitea
+DEFAULT_THEME = gitea-auto
+THEMES = gitea-auto,gitea-light,gitea-dark
 ```
 
 Start (leaves a running container named `gitea-demo`):
