@@ -8,6 +8,7 @@ export type ReviewMapRef = {
   StartLine: number,
   EndLine: number,
   Valid: boolean,
+  Note: string,
 };
 
 export type ReviewMapBullet = {
@@ -18,6 +19,8 @@ export type ReviewMapBullet = {
   Refs: ReviewMapRef[],
   AddedLines: number,
   RemovedLines: number,
+  Summary: string,
+  Details: string[] | null,
 };
 
 export type ReviewMapPageData = {
@@ -48,23 +51,30 @@ function boxFileName(box: Element): string {
 }
 
 // clearBulletFilter reverts everything the filter changed: it only touches the diff file boxes'
-// "tw-hidden" class and row-level "tw-hidden"/"review-map-line-highlight" classes inside them.
-// No other feature hides whole rows inside diff file boxes (diff folding uses "data-folded" on the box),
-// so un-hiding every row in every box is safe and keeps the function free of hidden state.
+// "tw-hidden" class and row-level "tw-hidden"/"review-map-line-highlight"/"review-map-strip-open"
+// classes inside them. No other feature hides whole rows inside diff file boxes (diff folding uses
+// "data-folded" on the box), so un-hiding every row in every box is safe and keeps the function
+// free of hidden state.
 export function clearBulletFilter(root: Document | HTMLElement): void {
   for (const box of root.querySelectorAll('#diff-file-boxes .diff-file-box')) {
     box.classList.remove('tw-hidden');
     for (const row of box.querySelectorAll('tr')) {
-      row.classList.remove('tw-hidden', 'review-map-line-highlight');
+      row.classList.remove('tw-hidden', 'review-map-line-highlight', 'review-map-strip-open');
     }
   }
 }
 
-function filterBoxRows(box: Element, refs: ReviewMapRef[]): void {
+function filterBoxRows(box: Element, refs: ReviewMapRef[], activeIndex: number): void {
   let lastRight: number | null = null; // last non-empty new-side line number seen so far
   let lastCodeRowVisible = false;
   let pendingTagRows: Element[] = []; // hunk headers waiting for a visible code row after them
   for (const row of box.querySelectorAll('table.chroma[data-path] tr')) {
+    if (row.classList.contains('review-map-strip')) {
+      // a summary strip stays only for the change being applied
+      if (row.getAttribute('data-bullet-index') === String(activeIndex)) row.classList.remove('tw-hidden');
+      else hideElem(row);
+      continue;
+    }
     if (row.classList.contains('add-comment')) {
       // a comment thread row belongs to the code row right above it
       if (!lastCodeRowVisible) hideElem(row);
@@ -99,7 +109,7 @@ function filterBoxRows(box: Element, refs: ReviewMapRef[]): void {
 // applyBulletFilter narrows the diff to the lines implementing one review-map bullet.
 // It returns false when no file box matches any ref of the bullet: the diff is left untouched
 // so the caller can show the fallback and scroll to the first ref's file anchor instead.
-export function applyBulletFilter(bullet: {Refs: ReviewMapRef[]}, root: Document | HTMLElement): boolean {
+export function applyBulletFilter(bullet: {Index: number, Refs: ReviewMapRef[]}, root: Document | HTMLElement): boolean {
   const boxes = Array.from(root.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box'));
   const refsByBox = boxes.map((box) => ({box, refs: bullet.Refs.filter((ref) => ref.File === boxFileName(box))}));
   clearBulletFilter(root); // also makes applying another bullet retarget in place
@@ -109,9 +119,77 @@ export function applyBulletFilter(bullet: {Refs: ReviewMapRef[]}, root: Document
       hideElem(box);
       continue;
     }
-    filterBoxRows(box, refs);
+    filterBoxRows(box, refs, bullet.Index);
   }
   return true;
+}
+
+// --- plain-english strips ------------------------------------------------------
+
+// buildStripRows inserts one collapsed strip row above the first mapped line of every
+// (bullet x file) pair that has a row to anchor on. Strips always exist (they anchor the
+// change in the file) and expand for the selected change; body = the file note, else the
+// change summary.
+export function buildStripRows(data: ReviewMapPageData, root: Document | HTMLElement): void {
+  for (const box of root.querySelectorAll<HTMLElement>('#diff-file-boxes .diff-file-box')) {
+    for (const bullet of data.bullets) {
+      const refs = bullet.Refs.filter((ref) => ref.File === boxFileName(box));
+      if (!refs.length) continue;
+      const anchor = firstMappedRow(box, refs);
+      if (!anchor) continue;
+      anchor.before(makeStripRow(bullet, refs.find((ref) => ref.Note) || null));
+    }
+  }
+}
+
+// firstMappedRow walks the box rows tracking the new-side line number (deletion rows anchor
+// on the previous row's number) and returns the first row inside any ref range.
+function firstMappedRow(box: Element, refs: ReviewMapRef[]): Element | null {
+  let lastRight: number | null = null;
+  for (const row of box.querySelectorAll('table.chroma[data-path] tr')) {
+    if (row.classList.contains('review-map-strip') || row.classList.contains('add-comment')) continue;
+    const lineNumAttr = row.querySelector('td.lines-num-new')?.getAttribute('data-line-num');
+    let lineNum: number | null = null; // deletion rows without a new-side number anchor on the previous row
+    if (lineNumAttr) {
+      lineNum = parseInt(lineNumAttr, 10);
+      lastRight = lineNum;
+    } else {
+      lineNum = lastRight;
+    }
+    if (lineNum !== null && refs.some((ref) => lineNum >= ref.StartLine && lineNum <= ref.EndLine)) return row;
+  }
+  return null;
+}
+
+function makeStripRow(bullet: ReviewMapBullet, noteRef: ReviewMapRef | null): HTMLElement {
+  const tpl = document.querySelector('#review-map-strip-tpl');
+  const moreLabel = tpl?.getAttribute('data-more') || 'More';
+  const lessLabel = tpl?.getAttribute('data-less') || 'Less';
+  const row = document.createElement('tr');
+  row.className = 'review-map-strip';
+  row.setAttribute('data-bullet-index', String(bullet.Index));
+  const hasDetails = Boolean(bullet.Details?.length);
+  row.innerHTML = `
+    <td class="lines-num review-map-strip-num" aria-hidden="true"></td>
+    <td colspan="5" class="lines-code review-map-strip-cell">
+      <span class="review-map-strip-head"><span class="review-map-strip-no">${bullet.Index + 1}</span></span>
+      <span class="review-map-strip-body">
+        <span class="review-map-strip-title"></span>
+        <span class="review-map-strip-text"></span>
+        <button type="button" class="review-map-strip-more tw-hidden" data-more="${moreLabel}" data-less="${lessLabel}">${moreLabel}</button>
+        <button type="button" class="review-map-strip-close" aria-label="${tpl?.getAttribute('data-close') || 'Close'}">×</button>
+      </span>
+      <span class="review-map-strip-details tw-hidden"></span>
+    </td>`;
+  row.querySelector('.review-map-strip-title')!.textContent = bullet.Text;
+  row.querySelector('.review-map-strip-text')!.textContent = noteRef?.Note || bullet.Summary || '';
+  const more = row.querySelector<HTMLElement>('.review-map-strip-more');
+  if (hasDetails) {
+    more?.classList.remove('tw-hidden');
+    const details = row.querySelector('.review-map-strip-details');
+    if (details) details.textContent = (bullet.Details || []).join(' ');
+  }
+  return row;
 }
 
 // setActiveBullet marks the sidebar card of the applied bullet; pass null to clear.
@@ -175,6 +253,29 @@ export function initReviewMapPanel() {
 
   const totalBoxCount = document.querySelectorAll('#diff-file-boxes .diff-file-box').length;
   // notify other modules (the file tree narrows to the visible boxes)
+  // strips always exist; the selected change's strips expand, all others collapse
+  const setStripsOpen = (index: number | null) => {
+    for (const strip of document.querySelectorAll('tr.review-map-strip')) {
+      strip.classList.toggle('review-map-strip-open', strip.getAttribute('data-bullet-index') === String(index));
+    }
+  };
+  addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', 'tr.review-map-strip', (strip, e) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('.review-map-strip-close')) {
+      strip.classList.remove('review-map-strip-open');
+      return;
+    }
+    const more = target.closest<HTMLElement>('.review-map-strip-more');
+    if (more) {
+      const open = strip.classList.toggle('review-map-strip-more-open');
+      more.textContent = open ? more.getAttribute('data-less') : more.getAttribute('data-more');
+      strip.querySelector('.review-map-strip-details')?.classList.toggle('tw-hidden', !open);
+      return;
+    }
+    strip.classList.toggle('review-map-strip-open');
+  });
+  buildStripRows(data, document);
+
   const notifyFilterChanged = () => {
     document.dispatchEvent(new CustomEvent('review-map:filter-changed'));
   };
@@ -203,6 +304,7 @@ export function initReviewMapPanel() {
     if (applyBulletFilter(bullet, document)) {
       showElem(showAllButton);
       setActiveBullet(panel, index);
+      setStripsOpen(index);
       sessionStorage.setItem(filterStorageKey, String(index)); // reloads keep the active filter
       const visibleCount = document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)').length;
       showBulletStats(bullet, visibleCount, totalBoxCount);
@@ -214,6 +316,7 @@ export function initReviewMapPanel() {
       document.querySelector('tr.review-map-line-highlight')?.scrollIntoView({block: 'center'});
     } else {
       setActiveBullet(panel, null);
+      setStripsOpen(null);
       restoreStats();
       if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
       showElem(fallbackBox);
@@ -296,6 +399,7 @@ export function initReviewMapPanel() {
   showAllButton.addEventListener('click', () => {
     clearBulletFilter(document);
     hideElem(showAllButton);
+    setStripsOpen(null);
     setActiveBullet(panel, null);
     restoreStats();
     if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');

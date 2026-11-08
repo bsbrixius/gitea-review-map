@@ -226,3 +226,86 @@
 #review-map-approve-change.review-map-change-done {
   opacity: 0.6;
 }
+
+/* plain-english strips: always-present anchors above each change's mapped lines */
+tr.review-map-strip > td {
+  background: var(--color-box-body);
+  border-top: 1px solid var(--color-secondary);
+  border-bottom: 1px solid var(--color-secondary);
+  padding: 0;
+  cursor: pointer;
+}
+
+.review-map-strip-num,
+.review-map-strip-head {
+  display: flex;
+  align-items: center;
+}
+
+.review-map-strip-head {
+  gap: 6px;
+  padding: 3px 8px;
+  color: var(--color-text-light-2);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.review-map-strip-head::before {
+  content: "‸";
+  font-size: 12px;
+}
+
+.review-map-strip-body {
+  display: none;
+}
+
+.review-map-strip-open > td .review-map-strip-head {
+  display: none;
+}
+
+.review-map-strip-open > td .review-map-strip-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.review-map-strip-title {
+  font-weight: var(--font-weight-semibold);
+}
+
+.review-map-strip-text {
+  color: var(--color-text-light-1);
+  flex: 1 1 24em;
+  overflow-wrap: anywhere;
+}
+
+.review-map-strip-details {
+  display: block;
+  padding: 0 10px 6px;
+  color: var(--color-text-light-2);
+  overflow-wrap: anywhere;
+}
+
+.review-map-strip-more,
+.review-map-strip-close {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-text-light-2);
+  padding: 0 2px;
+}
+
+.review-map-strip-close {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* sidebar summary echo under each change */
+.review-map-sidebar .review-map-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

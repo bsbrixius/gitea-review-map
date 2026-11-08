@@ -2,6 +2,12 @@
 <div>
 	<div class="diff-detail-box">
 		<div class="flex-text-block tw-flex-wrap tw-ml-0.5">
+			{{if and .PageIsPullFiles .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
+				<button id="review-map-toggle" class="not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "review_map.show_panel"}}" data-hide-text="{{ctx.Locale.Tr "review_map.hide_panel"}}">
+					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
+					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
+				</button>
+			{{end}}
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
 					{{/* the icon meaning is reversed here, "octicon-sidebar-collapse" means show the file tree */}}

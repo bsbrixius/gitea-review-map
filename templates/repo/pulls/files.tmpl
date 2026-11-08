@@ -6,7 +6,6 @@
 		{{template "repo/pulls/tab_menu" .}}
 		{{if and .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
 			<div class="review-map-layout">
-				<button id="review-map-show" type="button" class="btn interact-fg tw-hidden" title="{{ctx.Locale.Tr "review_map.show_panel"}}" aria-label="{{ctx.Locale.Tr "review_map.show_panel"}}">{{svg "octicon-chevron-right" 14}}</button>
 				{{template "repo/issue/view_content/review_map_sidebar".}}
 				<div class="review-map-diff-column">{{template "repo/diff/box" .}}</div>
 			</div>

@@ -1,4 +1,4 @@
-import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
+import {applyBulletFilter, buildStripRows, clearBulletFilter, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
 import {applyTreeFilter} from './diff-sidebars.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {POST} from '../modules/fetch.ts';
@@ -90,13 +90,15 @@ const panelHTML = `
 </div>`;
 
 const bulletA = {
-  Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
-  Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 3, EndLine: 4, Valid: true}],
+  Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1, Summary: '', Details: null,
+  Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 3, EndLine: 4, Valid: true, Note: ''}],
 };
+const bulletAStrips = {...bulletA, Summary: 'Change-level text A.', Details: ['detail one']};
 const bulletB = {
-  Index: 1, Hash: 'hash-b', Text: 'Fix the bug', Orphan: false, AddedLines: 2, RemovedLines: 1,
-  Refs: [{File: 'docs/other.md', NameHash: 'bbbb', StartLine: 1, EndLine: 1, Valid: true}],
+  Index: 1, Hash: 'hash-b', Text: 'Fix the bug', Orphan: false, AddedLines: 2, RemovedLines: 1, Summary: '', Details: null,
+  Refs: [{File: 'docs/other.md', NameHash: 'bbbb', StartLine: 1, EndLine: 1, Valid: true, Note: 'File note B.'}],
 };
+const bulletBStrips = {...bulletB, Summary: '', Details: null, Refs: [...bulletB.Refs, {File: 'src/a.txt', NameHash: 'aaaa', StartLine: 20, EndLine: 20, Valid: true, Note: ''}]};
 
 const pageData = {
   ignoredReason: '',
@@ -114,6 +116,10 @@ const pageData = {
   orphanCount: 0,
   progress: [],
 };
+
+function stripsPageData() {
+  return {...pageData, bullets: [bulletAStrips, bulletBStrips]};
+}
 
 function isHidden(el: Element): boolean {
   return el.classList.contains('tw-hidden');
@@ -207,7 +213,7 @@ describe('review-map', {concurrent: false}, () => {
 
     test('returns false and leaves the diff untouched when no file box matches', () => {
       document.body.innerHTML = diffHTML;
-      const missing = {Index: 2, Hash: 'hash-c', Text: 'Elsewhere', Orphan: true, AddedLines: 2, RemovedLines: 1, Refs: [{File: 'missing.txt', NameHash: 'cccc', StartLine: 1, EndLine: 2, Valid: true}]};
+      const missing = {Index: 2, Hash: 'hash-c', Text: 'Elsewhere', Orphan: true, AddedLines: 2, RemovedLines: 1, Summary: '', Details: null, Refs: [{File: 'missing.txt', NameHash: 'cccc', StartLine: 1, EndLine: 2, Valid: true, Note: ''}]};
       expect(applyBulletFilter(missing, document)).toBeFalsy();
       for (const el of document.querySelectorAll('#diff-file-boxes .diff-file-box, #diff-file-boxes tr')) {
         expect(isHidden(el)).toBeFalsy();
@@ -285,8 +291,8 @@ describe('review-map', {concurrent: false}, () => {
     test('files page: a bullet whose refs match no file box shows the fallback and scrolls to the first ref anchor', () => {
       document.body.innerHTML = panelHTML + diffHTML;
       const missing = {
-        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
-        Refs: [{File: 'missing.txt', NameHash: 'bbbb', StartLine: 1, EndLine: 2, Valid: true}],
+        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1, Summary: '', Details: null,
+        Refs: [{File: 'missing.txt', NameHash: 'bbbb', StartLine: 1, EndLine: 2, Valid: true, Note: ''}],
       };
       window.config.pageData.reviewMap = {...pageData, bullets: [missing]};
       const spyScroll = vi.spyOn(document.querySelector('#diff-bbbb')!, 'scrollIntoView').mockImplementation(() => {});
@@ -301,8 +307,8 @@ describe('review-map', {concurrent: false}, () => {
     test('files page: a matched file box whose rows all fall outside the range still filters successfully', () => {
       document.body.innerHTML = panelHTML + diffHTML;
       const retargeted = {
-        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
-        Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 100, EndLine: 200, Valid: true}],
+        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1, Summary: '', Details: null,
+        Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 100, EndLine: 200, Valid: true, Note: ''}],
       };
       window.config.pageData.reviewMap = {...pageData, bullets: [retargeted]};
       initReviewMapPanel();
@@ -407,5 +413,45 @@ describe('file tree narrowing', () => {
     expect(tree.querySelectorAll('.review-map-tree-excluded')).toHaveLength(0);
     expect(tree.classList.contains('review-map-tree-hide')).toBeFalsy();
     expect(tree.classList.contains('review-map-tree-dim')).toBeFalsy();
+  });
+});
+
+describe('plain-english strips', () => {
+  test('buildStripRows anchors above the first mapped line, body = note else summary', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    buildStripRows(stripsPageData(), document);
+    const stripA = document.querySelector('#diff-aaaa tr.review-map-strip[data-bullet-index="0"]')!;
+    expect((stripA.nextElementSibling as HTMLElement).id).toBe('a-add-3'); // first row inside 3-4
+    expect(stripA.querySelector('.review-map-strip-title')!.textContent).toBe('Add the feature');
+    expect(stripA.querySelector('.review-map-strip-text')!.textContent).toBe('Change-level text A.'); // no note -> summary
+    expect(stripA.querySelector('.review-map-strip-no')!.textContent).toBe('1');
+    expect(stripA.querySelector('.review-map-strip-more')!.classList.contains('tw-hidden')).toBeFalsy(); // has details
+    const stripB = document.querySelector('#diff-bbbb tr.review-map-strip[data-bullet-index="1"]')!;
+    expect((stripB.nextElementSibling as HTMLElement).id).toBe('b-add-1');
+    expect(stripB.querySelector('.review-map-strip-text')!.textContent).toBe('File note B.'); // note wins
+  });
+
+  test('the bullet filter keeps only the selected change strip visible', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    buildStripRows(stripsPageData(), document);
+    applyBulletFilter(stripsPageData().bullets[0], document);
+    // same box now carries both strips: only the selected change's strip stays
+    expect((document.querySelector('#diff-aaaa [data-bullet-index="0"]') as HTMLElement).classList.contains('tw-hidden')).toBeFalsy();
+    expect((document.querySelector('#diff-aaaa [data-bullet-index="1"]') as HTMLElement).classList.contains('tw-hidden')).toBeTruthy();
+    expect((document.querySelector('#diff-bbbb') as HTMLElement).classList.contains('tw-hidden')).toBeTruthy();
+    clearBulletFilter(document);
+    expect((document.querySelector('#diff-bbbb [data-bullet-index="1"]') as HTMLElement).classList.contains('tw-hidden')).toBeFalsy();
+  });
+
+  test('More toggles the details block and Close collapses an open strip', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    buildStripRows(stripsPageData(), document);
+    const stripA = document.querySelector('#diff-aaaa tr.review-map-strip[data-bullet-index="0"]') as HTMLElement;
+    (stripA.querySelector('.review-map-strip-more') as HTMLElement).click();
+    expect(stripA.querySelector('.review-map-strip-details')!.classList.contains('tw-hidden')).toBeFalsy();
+    (stripA.querySelector('.review-map-strip-close') as HTMLElement).click();
+    expect(stripA.classList.contains('review-map-strip-open')).toBeFalsy();
+    stripA.click(); // anywhere else on the strip toggles it open again
+    expect(stripA.classList.contains('review-map-strip-open')).toBeTruthy();
   });
 });

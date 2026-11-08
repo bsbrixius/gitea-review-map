@@ -4,7 +4,6 @@
 	<div class="review-map-sidebar-header">
 		<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-1">
 			<div class="tw-font-semibold">{{ctx.Locale.Tr "review_map.panel_title"}}</div>
-			<button id="review-map-hide" type="button" class="btn interact-fg tw-ml-auto" title="{{ctx.Locale.Tr "review_map.hide_panel"}}" aria-label="{{ctx.Locale.Tr "review_map.hide_panel"}}">{{svg "octicon-chevron-left" 14}}</button>
 			{{if and (eq .ReviewMapData.InvalidRefCount 0) (eq .ReviewMapData.OrphanCount 0)}}
 				<span class="ui small label tw-bg-green tw-text-white">{{svg "octicon-check" 12}} {{ctx.Locale.Tr "review_map.verified"}}</span>
 			{{else}}
@@ -38,6 +37,7 @@
 							<span class="review-map-bullet-text" title="{{.Text}}">{{.Text}}</span>
 							{{if .Orphan}}<span class="tw-text-error" title="{{ctx.Locale.Tr "review_map.orphan_warning"}}">{{svg "octicon-alert" 12}}</span>{{end}}
 						</div>
+						{{if .Summary}}<div class="review-map-summary tw-text-grey" title="{{.Summary}}">{{.Summary}}</div>{{end}}
 						<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2 tw-text-12">
 							<span class="review-map-bullet-stats tw-flex tw-gap-1">
 								<span class="tw-text-green">+{{.AddedLines}}</span>
@@ -67,6 +67,7 @@
 		{{end}}
 	</div>
 	<span id="review-map-filtered-stats-tpl" class="tw-hidden" data-tpl="{{ctx.Locale.Tr "review_map.filtered_stats" "{n}" "{total}"}}"></span>
+	<span id="review-map-strip-tpl" class="tw-hidden" data-more="{{ctx.Locale.Tr "review_map.strip_more"}}" data-less="{{ctx.Locale.Tr "review_map.strip_less"}}" data-close="{{ctx.Locale.Tr "review_map.strip_close"}}"></span>
 	<span id="review-map-approve-change-tpl" class="tw-hidden" data-label="{{ctx.Locale.Tr "review_map.approve_change"}}" data-tooltip="{{ctx.Locale.Tr "review_map.approve_change_tooltip"}}"></span>
 	{{if or .ReviewMapData.Coverage.UnmappedFiles .ReviewMapData.IgnoreGlobs}}
 		<div class="review-map-sidebar-footer tw-flex tw-flex-col tw-gap-1 tw-text-12">

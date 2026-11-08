@@ -161,18 +161,17 @@ export function initDiffSidebars() {
   const map = document.querySelector<HTMLElement>('.review-map-sidebar');
   if (map) enableHorizontalResize(map, mapWidthKey, 240, Math.min(860, window.innerWidth * 0.5), 90);
 
-  const hideBtn = map?.querySelector<HTMLElement>('#review-map-hide');
-  const showBtn = document.querySelector<HTMLElement>('#review-map-show');
-  if (!map || !hideBtn || !showBtn) return;
+  // file-tree-style toggle button (rendered in the diff header next to the tree toggle)
+  const toggleBtn = document.querySelector<HTMLElement>('#review-map-toggle');
+  if (!map || !toggleBtn) return;
   const setHidden = (hidden: boolean) => {
     toggleElem(map, !hidden);
-    toggleElem(showBtn, hidden);
+    // same reversed-icon convention as the file tree button: visible shows "expand"
+    toggleBtn.querySelector('.octicon-sidebar-expand')?.classList.toggle('tw-hidden', hidden);
+    toggleBtn.querySelector('.octicon-sidebar-collapse')?.classList.toggle('tw-hidden', !hidden);
+    toggleBtn.setAttribute('data-tooltip-content', toggleBtn.getAttribute(hidden ? 'data-show-text' : 'data-hide-text') || '');
     localUserSettings.setBoolean(mapHiddenKey, hidden);
   };
-  hideBtn.addEventListener('click', () => setHidden(true));
-  showBtn.addEventListener('click', () => setHidden(false));
-  if (localUserSettings.getBoolean(mapHiddenKey, false)) {
-    toggleElem(map, false);
-    toggleElem(showBtn, true);
-  }
+  toggleBtn.addEventListener('click', () => setHidden(!map.classList.contains('tw-hidden')));
+  if (localUserSettings.getBoolean(mapHiddenKey, false)) setHidden(true);
 }
