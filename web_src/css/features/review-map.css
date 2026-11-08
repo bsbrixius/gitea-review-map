@@ -79,7 +79,7 @@
   padding: 10px 12px 10px 14px;
   border: 1px solid var(--color-secondary);
   border-radius: 8px;
-  background: var(--color-box-body);
+  background: color-mix(in srgb, var(--color-box-body) 92%, var(--color-white));
   box-shadow: inset 3px 0 0 var(--color-secondary);
   cursor: pointer;
 }
@@ -171,7 +171,7 @@
 
 /* the Review Map tab: a recessed bed so the lifted cards read as surfaces */
 .review-map-tab .review-map-cards {
-  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  background: color-mix(in srgb, var(--color-secondary) 26%, transparent);
   padding: 10px;
   border-radius: 8px;
 }
