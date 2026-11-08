@@ -26,6 +26,8 @@ type BulletStatus struct {
 	Hash, Text string
 	Orphan     bool
 	Refs       []RefStatus
+	// changed lines attributed to this bullet (earliest covering bullet wins an overlap)
+	AddedLines, RemovedLines int
 }
 
 type Coverage struct {
@@ -46,12 +48,14 @@ func HashBullet(text string) string {
 	return hex.EncodeToString(h[:])
 }
 
+type changeCounts struct{ added, removed int }
+
 type fileCoverage struct {
 	path      string // new-side path: Name, falling back to the old name for deletions
 	file      *gitdiff.DiffFile
 	ignored   bool
-	changed   map[int]int // changed lines anchored at each new-side position; 0 = deletion without a new-side anchor, never coverable
-	hunkSpans [][2]int    // new-side [start, end] of each hunk
+	changed   map[int]changeCounts // changed lines anchored at each new-side position; 0 = deletion without a new-side anchor, never coverable
+	hunkSpans [][2]int             // new-side [start, end] of each hunk
 }
 
 // ComputeResult validates a review map against the diff and computes coverage. Pure: no I/O.
@@ -81,7 +85,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 	filesByPath := map[string]*fileCoverage{}
 	if diff != nil {
 		for _, f := range diff.Files {
-			fc := &fileCoverage{path: diffFilePath(f), file: f, changed: map[int]int{}}
+			fc := &fileCoverage{path: diffFilePath(f), file: f, changed: map[int]changeCounts{}}
 			for _, g := range ignoreMatchers {
 				if g.Match(fc.path) {
 					fc.ignored = true
@@ -102,14 +106,16 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 							}
 						}
 					case gitdiff.DiffLineAdd:
-						fc.changed[l.RightIdx]++
+						fc.changed[l.RightIdx] = changeCounts{added: fc.changed[l.RightIdx].added + 1}
 						lastRight = l.RightIdx
 						if singleLineHunk { // the hunk is this single added line; pure-deletion sides ("+0,0") never get here
 							fc.hunkSpans = append(fc.hunkSpans, [2]int{l.RightIdx, l.RightIdx})
 							singleLineHunk = false
 						}
 					case gitdiff.DiffLineDel:
-						fc.changed[lastRight]++ // deletions anchor to the nearest preceding new-side line
+						c := fc.changed[lastRight] // deletions anchor to the nearest preceding new-side line
+						c.removed++
+						fc.changed[lastRight] = c
 					case gitdiff.DiffLinePlain:
 						lastRight = l.RightIdx
 					}
@@ -136,7 +142,7 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 		// range, in the same units as TotalChanged so full coverage is reachable
 		for pos, count := range fc.changed {
 			if coveredByAny(rangesByPath[fc.path], pos) {
-				res.Coverage.MappedChanged += count
+				res.Coverage.MappedChanged += count.added + count.removed
 			} else {
 				unmapped = true
 			}
@@ -171,7 +177,29 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 			}
 		}
 	}
+	for _, fc := range files {
+		if fc.ignored || fc.file.IsIncomplete { // same universe as the coverage math
+			continue
+		}
+		for pos, c := range fc.changed {
+			if bi := firstCoveringBullet(bullets, fc.path, pos); bi >= 0 {
+				res.Bullets[bi].AddedLines += c.added
+				res.Bullets[bi].RemovedLines += c.removed
+			}
+		}
+	}
 	return res
+}
+
+func firstCoveringBullet(bullets []reviewmapmod.Bullet, path string, pos int) int {
+	for i, b := range bullets {
+		for _, r := range b.Changes {
+			if r.File == path && r.StartLine <= pos && pos <= r.EndLine {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 func diffFilePath(f *gitdiff.DiffFile) string {

@@ -34,6 +34,50 @@ func bulletStatus(index int, text string, orphan bool, refs ...RefStatus) Bullet
 	return BulletStatus{Index: index, Hash: HashBullet(text), Text: text, Orphan: orphan, Refs: refs}
 }
 
+func bulletStatusCounts(index int, text string, orphan bool, added, removed int, refs ...RefStatus) BulletStatus {
+	bs := bulletStatus(index, text, orphan, refs...)
+	bs.AddedLines, bs.RemovedLines = added, removed
+	return bs
+}
+
+func parsePatchForTest(t *testing.T, patch string) *gitdiff.Diff {
+	t.Helper()
+	// maxLineCharacters must stay positive: ParsePatch slices line[:maxLineCharacters]
+	// whenever len(line) > limit, so -1 panics; 5000 is the upstream default.
+	diff, err := gitdiff.ParsePatch(t.Context(), -1, 5000, -1, strings.NewReader(patch), "")
+	require.NoError(t, err)
+	return diff
+}
+
+func TestComputeResultPerBulletStats(t *testing.T) {
+	patch := `diff --git a/s.ts b/s.ts
+--- a/s.ts
++++ b/s.ts
+@@ -1,4 +1,5 @@
+ ctx1
++add1
+ ctx2
++add2
+-old1
+`
+	m := &reviewmapmod.Map{Bullets: []reviewmapmod.Bullet{
+		{Text: "first", Changes: []reviewmapmod.FileRange{{File: "s.ts", StartLine: 1, EndLine: 2}}},
+		{Text: "second", Changes: []reviewmapmod.FileRange{{File: "s.ts", StartLine: 2, EndLine: 5}}},
+	}}
+	want := &Result{
+		Bullets: []BulletStatus{
+			bulletStatus(0, "first", false, refStatus("s.ts", 1, 2, true)),
+			bulletStatus(1, "second", false, refStatus("s.ts", 2, 5, true)),
+		},
+		Coverage: Coverage{TotalChanged: 3, MappedChanged: 3},
+	}
+	want.Bullets[0].AddedLines, want.Bullets[1].AddedLines = 1, 1 // add1 -> first (earlier bullet wins the overlap), add2 -> second
+	want.Bullets[1].RemovedLines = 1                              // old1 anchors to line 4, inside second's range only
+	got := ComputeResult(m, parsePatchForTest(t, patch), []string{"first", "second"})
+	assert.Equal(t, want, got)
+	assert.Equal(t, want.Coverage.MappedChanged, got.Bullets[0].AddedLines+got.Bullets[0].RemovedLines+got.Bullets[1].AddedLines+got.Bullets[1].RemovedLines)
+}
+
 func TestComputeResult(t *testing.T) {
 	appTsPatch := `diff --git a/app.ts b/app.ts
 --- a/app.ts
@@ -131,11 +175,11 @@ diff --git a/src/snapshots/ui.snap b/src/snapshots/ui.snap
 			},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Added Advanced Query slice and selectors to manage state and criteria", false,
+					bulletStatusCounts(0, "Added Advanced Query slice and selectors to manage state and criteria", false, 5, 0,
 						refStatus("src/store/slices/AdvancedQuery.ts", 1, 120, true),
 						refStatus("src/store/selectors/AdvancedQuery.ts", 1, 45, true),
 					),
-					bulletStatus(1, "Updated infinite row datasource to support fetching data from the Advanced Query endpoint", false,
+					bulletStatusCounts(1, "Updated infinite row datasource to support fetching data from the Advanced Query endpoint", false, 2, 1,
 						refStatus("src/utilities/infiniteRowDatasource.ts", 30, 88, true),
 					),
 				},
@@ -207,7 +251,7 @@ diff --git a/src/snapshots/ui.snap b/src/snapshots/ui.snap
 			descBullets: []string{"Rework anchor"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Rework anchor", false, refStatus("anchor.txt", 10, 12, true)),
+					bulletStatusCounts(0, "Rework anchor", false, 1, 3, refStatus("anchor.txt", 10, 12, true)),
 				},
 				// 4 changed lines over 2 anchor positions (10: delA+delB, 12: add11+delC), all inside the range
 				Coverage: Coverage{TotalChanged: 4, MappedChanged: 4},
@@ -259,7 +303,7 @@ diff --git a/b.txt b/b.txt
 			descBullets: []string{"Bump version"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Bump version", false,
+					bulletStatusCounts(0, "Bump version", false, 2, 0,
 						refStatus("VERSION", 1, 1, true),
 						refStatus("b.txt", 1, 1, true),
 					),
@@ -320,7 +364,7 @@ diff --git a/app.ts b/app.ts
 			descBullets: []string{"Add logo"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Add logo", false, refStatus("app.ts", 1, 3, true)),
+					bulletStatusCounts(0, "Add logo", false, 1, 0, refStatus("app.ts", 1, 3, true)),
 				},
 				Coverage: Coverage{TotalChanged: 1, MappedChanged: 1, UnmappedFiles: []string{"logo.png", "vendor/lib"}},
 			},
@@ -362,7 +406,7 @@ diff --git a/app.ts b/app.ts
 			want: &Result{
 				Bullets: []BulletStatus{
 					// the submodule ref is valid: its "@@ -0,0 +1 @@" single-line hunk spans new-side line 1
-					bulletStatus(0, "Add app and pin submodule", false,
+					bulletStatusCounts(0, "Add app and pin submodule", false, 2, 0,
 						refStatus("app.ts", 1, 3, true),
 						refStatus("vendor/kept", 1, 1, true),
 					),
@@ -400,7 +444,7 @@ diff --git a/src/snapshots/case1.snap b/src/snapshots/case1.snap
 			descBullets: []string{"Update UI and snapshot"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Update UI and snapshot", false,
+					bulletStatusCounts(0, "Update UI and snapshot", false, 1, 0,
 						refStatus("src/ui.ts", 1, 3, true),
 						refStatus("src/snapshots/case1.snap", 1, 2, false),
 					),
@@ -436,7 +480,7 @@ diff --git a/src/foo.test.snap b/src/foo.test.snap
 			descBullets: []string{"Update UI"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Update UI", false, refStatus("src/ui.ts", 1, 3, true)),
+					bulletStatusCounts(0, "Update UI", false, 1, 0, refStatus("src/ui.ts", 1, 3, true)),
 				},
 				Coverage:    Coverage{TotalChanged: 1, MappedChanged: 1},
 				IgnoreGlobs: []string{"src/**/*.snap"},
@@ -452,7 +496,7 @@ diff --git a/src/foo.test.snap b/src/foo.test.snap
 			descBullets: []string{"First change", "Second change"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "First change", false, refStatus("app.ts", 1, 2, true)),
+					bulletStatusCounts(0, "First change", false, 1, 0, refStatus("app.ts", 1, 2, true)),
 					bulletStatus(1, "Second change", false, refStatus("app.ts", 2, 3, true)),
 				},
 				Coverage: Coverage{TotalChanged: 1, MappedChanged: 1},
@@ -483,7 +527,7 @@ diff --git a/other.ts b/other.ts
 			descBullets: []string{"Map one file"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Map one file", false, refStatus("mapped.ts", 1, 3, true)),
+					bulletStatusCounts(0, "Map one file", false, 1, 0, refStatus("mapped.ts", 1, 3, true)),
 				},
 				Coverage: Coverage{TotalChanged: 4, MappedChanged: 1, UnmappedFiles: []string{"other.ts"}},
 			},
@@ -498,7 +542,7 @@ diff --git a/other.ts b/other.ts
 			descBullets: []string{"Keep app tidy"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Keep app tidy", false, refStatus("app.ts", 1, 3, true)),
+					bulletStatusCounts(0, "Keep app tidy", false, 1, 0, refStatus("app.ts", 1, 3, true)),
 				},
 				Coverage: Coverage{TotalChanged: 1, MappedChanged: 1},
 			},
@@ -513,7 +557,7 @@ diff --git a/other.ts b/other.ts
 			descBullets: []string{"Current text", "Unrelated bullet"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					bulletStatus(0, "Current text", false, refStatus("app.ts", 1, 3, true)),
+					bulletStatusCounts(0, "Current text", false, 1, 0, refStatus("app.ts", 1, 3, true)),
 					bulletStatus(1, "Stale text", true, refStatus("app.ts", 1, 3, true)),
 				},
 				OrphanCount: 1,
@@ -547,10 +591,7 @@ diff --git a/other.ts b/other.ts
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// maxLineCharacters must stay positive: ParsePatch slices line[:maxLineCharacters]
-			// whenever len(line) > limit, so -1 panics; 5000 is the upstream default.
-			diff, err := gitdiff.ParsePatch(t.Context(), -1, 5000, -1, strings.NewReader(tc.patch), "")
-			require.NoError(t, err)
+			diff := parsePatchForTest(t, tc.patch)
 			if tc.nilDiff {
 				diff = nil
 			}
