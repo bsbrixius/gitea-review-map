@@ -121,6 +121,25 @@ BULLET_FILES=(
   "src/Common/PraQuando.SharedKernel.Application/CatalogReads/OperatingHoursDto.cs"
   "test/PraQuando.UnitTests/SharedKernel/ResultCombinatorTests.cs"
 )
+# plain-english layer: per-change summaries, per-file notes ("index:file"), details for change 0
+SUMMARIES=(
+  "Composes error flows without if/else ladders: failures short-circuit and keep the original error."
+  "Two stable error codes let API clients tell a past window from an inactive category without parsing messages."
+  "Counts rooms in SQL so callers distinguish no-rooms from no-schedule without loading the list."
+  "Past-date requests fail fast with a typed error, and the no-schedule warning says how many active rooms exist."
+  "One obvious place for open/closed checks, closing time excluded like the slot grid."
+  "Six facts pin the combinators, including the short-circuit path."
+)
+declare -A NOTES=(
+  ["2:src/Common/PraQuando.SharedKernel.Application/CatalogReads/IRoomAvailabilityQuery.cs"]="New contract method; its doc says when to prefer it over GetAvailableSlotsAsync."
+  ["2:src/Modules/Catalog/PraQuando.Modules.Catalog/Infrastructure/RoomAvailabilityQuery.cs"]="EF CountAsync over the same active-room filter instead of materializing rows."
+  ["3:src/Modules/Booking/PraQuando.Modules.Booking/Shared/AvailabilityService.cs"]="Guard first, then the enriched warning: cheap count before the empty-result return."
+  ["4:src/Common/PraQuando.SharedKernel.Application/CatalogReads/OperatingHoursDto.cs"]="Record method on the read model: no entity behavior crosses the module boundary."
+)
+DETAILS_0=(
+  "Map and Bind live on Result<TValue> because they need the value; Match lives on the base Result."
+  "All three are null-safe: a failure never touches the projection or continuation."
+)
 
 # compute_ranges <file>: one "start-end" cluster per line, new-side numbers
 # with 3 lines of context, merged when padding makes clusters touch. Computed
@@ -218,12 +237,21 @@ done
 
 MAP_BLOCK=$'ignore:\n  - "Directory.Packages.props"\nbullets:'
 for b in "${!BULLETS[@]}"; do
-  MAP_BLOCK+=$'\n'"  - bullet: \"${BULLETS[$b]}\""$'\n'"    changes:"
+  MAP_BLOCK+=$'\n'"  - bullet: \"${BULLETS[$b]}\""
+  [ -n "${SUMMARIES[$b]}" ] && MAP_BLOCK+=$'\n'"    summary: \"${SUMMARIES[$b]}\""
+  if [ "$b" = "0" ]; then
+    MAP_BLOCK+=$'\n'"    details:"
+    for d in "${DETAILS_0[@]}"; do
+      MAP_BLOCK+=$'\n'"      - \"$d\""
+    done
+  fi
+  MAP_BLOCK+=$'\n'"    changes:"
   for f in ${BULLET_FILES[$b]}; do
     ranges=$(awk -F'\t' -v f="$f" '$1 == f {print $2}' "$DEMO_DIR/ranges.txt")
     [ -n "$ranges" ] || die "no ranges found for $f"
     for r in $ranges; do
       MAP_BLOCK+=$'\n'"      - file: $f"$'\n'"        lines: $r"
+      [ -n "${NOTES[$b:$f]}" ] && MAP_BLOCK+=$'\n'"        note: \"${NOTES[$b:$f]}\""
     done
   done
 done

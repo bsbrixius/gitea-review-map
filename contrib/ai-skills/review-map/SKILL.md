@@ -39,9 +39,11 @@ ignore:
   - "src/**/*.snap"
 bullets:
   - bullet: "Added Advanced Query slice and selectors to manage state and criteria"
+    summary: "A small store slice holds the filter criteria; selectors read it without re-rendering the grid."
     changes:
       - file: src/store/slices/AdvancedQuery.ts
         lines: 1-120
+        note: "The slice itself: criteria state plus the reducer cases."
       - file: src/store/selectors/AdvancedQuery.ts
         lines: 1-45
   - bullet: "Updated infinite row datasource to support fetching data from the Advanced Query endpoint"
@@ -77,6 +79,12 @@ Format:
   fenced content when reading the description — a bullet list inside a fence
   matches nothing). A mismatch makes the entry an "orphan": it still
   validates, but the panel shows a warning.
+- The plain-English layer is optional but recommended: `summary:` (one quoted
+  sentence, max 280 chars) per bullet, `note:` (max 280 chars) after a file
+  entry's `lines:` explaining THAT file's part, and `details:` (up to 8 quoted
+  lines of max 200 chars) for background. Notes are what reviewers read above
+  the mapped lines — prefer a specific per-file note over vague change-level
+  prose. Over-length or misplaced keys reject the whole block.
 - `file:` is a repo-relative path with forward slashes only: no leading `/`,
   no `..` segment, no backslash, at most 500 characters. Quote it if it
   contains spaces.
