@@ -257,7 +257,7 @@ index 0123456..789abcd 100644
 			},
 		},
 		{
-			name: "binary listed without totals, submodule skipped entirely",
+			name: "binary and submodule listed without totals",
 			// quoted head names: unquoted ones keep a trailing space from readFileName's
 			// space-splitting heuristic (binary files have no +++ line to fix the name up)
 			patch: `diff --git "a/logo.png" "b/logo.png"
@@ -286,7 +286,55 @@ diff --git a/app.ts b/app.ts
 				Bullets: []BulletStatus{
 					bulletStatus(0, "Add logo", false, refStatus("app.ts", 1, 3, true)),
 				},
-				Coverage: Coverage{TotalChanged: 1, MappedChanged: 1, UnmappedFiles: []string{"logo.png"}},
+				Coverage: Coverage{TotalChanged: 1, MappedChanged: 1, UnmappedFiles: []string{"logo.png", "vendor/lib"}},
+			},
+		},
+		{
+			name: "referenced or ignored submodule not listed as unmapped",
+			patch: `diff --git a/vendor/kept b/vendor/kept
+new file mode 160000
+index 0000000..1234567
+--- /dev/null
++++ b/vendor/kept
+@@ -0,0 +1 @@
++Subproject commit 1234567890abcdef1234567890abcdef12345678
+diff --git a/vendor/gen b/vendor/gen
+new file mode 160000
+index 0000000..1234568
+--- /dev/null
++++ b/vendor/gen
+@@ -0,0 +1 @@
++Subproject commit 2234567890abcdef1234567890abcdef12345678
+diff --git a/app.ts b/app.ts
+--- a/app.ts
++++ b/app.ts
+@@ -1,2 +1,3 @@
+ a
++b
+ c
+`,
+			m: &reviewmapmod.Map{
+				Ignore: []string{"vendor/gen"},
+				Bullets: []reviewmapmod.Bullet{
+					{Text: "Add app and pin submodule", Changes: []reviewmapmod.FileRange{
+						{File: "app.ts", StartLine: 1, EndLine: 3},
+						{File: "vendor/kept", StartLine: 1, EndLine: 1},
+					}},
+				},
+			},
+			descBullets: []string{"Add app and pin submodule"},
+			want: &Result{
+				Bullets: []BulletStatus{
+					// the submodule ref is invalid like any ref to a file with no
+					// line-mappable hunks, but it still counts as "referenced"
+					bulletStatus(0, "Add app and pin submodule", false,
+						refStatus("app.ts", 1, 3, true),
+						refStatus("vendor/kept", 1, 1, false),
+					),
+				},
+				InvalidRefCount: 1,
+				Coverage:        Coverage{TotalChanged: 1, MappedChanged: 1},
+				IgnoreGlobs:     []string{"vendor/gen"},
 			},
 		},
 		{

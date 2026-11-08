@@ -113,11 +113,13 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 	}
 
 	for _, fc := range files {
-		if fc.ignored || fc.file.IsSubmodule || fc.file.IsIncomplete {
+		if fc.ignored || fc.file.IsIncomplete {
 			continue
 		}
-		if fc.file.IsBin { // no line totals, but still reported as unmapped
-			res.Coverage.UnmappedFiles = append(res.Coverage.UnmappedFiles, fc.path)
+		if fc.file.IsBin || fc.file.IsSubmodule { // no line totals, but an unreferenced file is still reported as unmapped
+			if len(rangesByPath[fc.path]) == 0 {
+				res.Coverage.UnmappedFiles = append(res.Coverage.UnmappedFiles, fc.path)
+			}
 			continue
 		}
 		res.Coverage.TotalChanged += fc.file.Addition + fc.file.Deletion
