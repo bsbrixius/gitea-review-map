@@ -1,5 +1,6 @@
 import {addDelegatedEventListener, hideElem, showElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 // nested types marshal with their Go field names, see services/reviewmap/pagedata.go
 export type ReviewMapRef = {
@@ -216,6 +217,20 @@ export function nextUnapprovedBulletIndex(approval: {approved: number, total: nu
 }
 
 export function initReviewMapPanel() {
+  // conversation page: the summary lives collapsed inside the PR's first comment
+  const convToggle = document.querySelector<HTMLElement>('#review-map-conv-toggle');
+  const convStrip = document.querySelector<HTMLElement>('#review-map-conv-strip');
+  if (convToggle && convStrip) {
+    const convOpenKey = 'review-map-conv-open';
+    const setConvOpen = (open: boolean) => {
+      convStrip.classList.toggle('tw-hidden', !open);
+      convToggle.setAttribute('aria-expanded', String(open));
+      localUserSettings.setBoolean(convOpenKey, open);
+    };
+    convToggle.addEventListener('click', () => setConvOpen(convStrip.classList.contains('tw-hidden')));
+    if (localUserSettings.getBoolean(convOpenKey, false)) setConvOpen(true);
+  }
+
   const panel = document.querySelector<HTMLElement>('#review-map-panel');
   if (!panel) return;
   const data = window.config.pageData.reviewMap;

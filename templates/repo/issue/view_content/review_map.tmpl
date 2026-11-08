@@ -2,9 +2,18 @@
 {{if .ReviewMapData.IgnoredReason}}
 <div class="review-map-secondary-text">{{ctx.Locale.Tr "review_map.block_ignored" .ReviewMapData.IgnoredReason}}</div>
 {{else}}
-<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-	{{template "repo/issue/view_content/review_map_summary".}}
-	<a class="ui mini button tw-ml-auto" href="{{.Issue.Link}}/review-map">{{svg "octicon-tasklist" 14}} {{ctx.Locale.Tr "review_map.open_tab"}}</a>
+<div class="review-map-conversation">
+	<button id="review-map-conv-toggle" type="button" class="btn interact-fg" aria-expanded="false" title="{{ctx.Locale.Tr "review_map.conv_tooltip"}}">
+		{{svg "octicon-tasklist" 14}}
+		{{ctx.Locale.Tr "review_map.panel_title"}}
+		{{svg "octicon-chevron-down" 12 "review-map-conv-chevron"}}
+	</button>
+	<div id="review-map-conv-strip" class="tw-hidden">
+		<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+			{{template "repo/issue/view_content/review_map_summary".}}
+			<a class="ui mini button tw-ml-auto" href="{{.Issue.Link}}/review-map">{{svg "octicon-tasklist" 14}} {{ctx.Locale.Tr "review_map.open_tab"}}</a>
+		</div>
+	</div>
 </div>
 {{end}}
 {{end}}

@@ -551,3 +551,34 @@ describe('tab page wiring', () => {
     spyAssign.mockRestore();
   });
 });
+
+describe('conversation toggle', () => {
+  const convHTML = `
+<div class="review-map-conversation">
+  <button id="review-map-conv-toggle" type="button" aria-expanded="false"><span class="review-map-conv-chevron"></span></button>
+  <div id="review-map-conv-strip" class="tw-hidden"></div>
+</div>`;
+
+  test('the strip starts hidden and the toggle reveals it, persisting the choice', () => {
+    document.body.innerHTML = convHTML;
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    expect(document.querySelector('#review-map-conv-strip')!.classList.contains('tw-hidden')).toBeTruthy();
+    (document.querySelector('#review-map-conv-toggle') as HTMLElement).click();
+    expect(document.querySelector('#review-map-conv-strip')!.classList.contains('tw-hidden')).toBeFalsy();
+    expect(document.querySelector('#review-map-conv-toggle')!.getAttribute('aria-expanded')).toBe('true');
+    expect(localUserSettings.getBoolean('review-map-conv-open', false)).toBeTruthy();
+    (document.querySelector('#review-map-conv-toggle') as HTMLElement).click();
+    expect(localUserSettings.getBoolean('review-map-conv-open', false)).toBeFalsy();
+    localUserSettings.setBoolean('review-map-conv-open', false);
+  });
+
+  test('a persisted open choice renders the strip expanded on load', () => {
+    document.body.innerHTML = convHTML;
+    window.config.pageData.reviewMap = pageData;
+    localUserSettings.setBoolean('review-map-conv-open', true);
+    initReviewMapPanel();
+    expect(document.querySelector('#review-map-conv-strip')!.classList.contains('tw-hidden')).toBeFalsy();
+    localUserSettings.setBoolean('review-map-conv-open', false);
+  });
+});

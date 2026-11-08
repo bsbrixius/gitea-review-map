@@ -403,3 +403,29 @@ tr.review-map-strip > td {
   color: var(--color-text-light-1);
   font-size: 13px;
 }
+
+/* conversation page: Review Map summary tucked into the first comment, collapsed by default */
+.review-map-conversation {
+  margin-top: 10px;
+  border-top: 1px solid var(--color-secondary);
+  padding-top: 8px;
+}
+
+#review-map-conv-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-light-1);
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 0;
+}
+
+#review-map-conv-toggle:hover {
+  color: var(--color-text);
+}
+
+#review-map-conv-strip {
+  margin-top: 8px;
+}

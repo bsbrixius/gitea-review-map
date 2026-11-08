@@ -1945,6 +1945,7 @@
   "review_map.flagged_label": "%d flagged",
   "review_map.flagged_tooltip": "Changes flagged for discussion by reviewers",
   "review_map.open_tab": "Open Review Map",
+  "review_map.conv_tooltip": "Show the Review Map summary (coverage, progress, flags)",
   "review_map.tab_hint": "Click a change to open its files filtered on the Files Changed tab.",
   "review_map.strip_more": "More",
   "review_map.strip_less": "Less",
