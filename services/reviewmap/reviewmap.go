@@ -51,7 +51,7 @@ type fileCoverage struct {
 	file      *gitdiff.DiffFile
 	ignored   bool
 	changed   map[int]int // changed lines anchored at each new-side position; 0 = deletion without a new-side anchor, never coverable
-	hunkSpans [][2]int    // new-side [start, end] of each hunk, from the hunk headers
+	hunkSpans [][2]int    // new-side [start, end] of each hunk
 }
 
 // ComputeResult validates a review map against the diff and computes coverage. Pure: no I/O.
@@ -90,16 +90,24 @@ func ComputeResult(m *reviewmapmod.Map, diff *gitdiff.Diff, descriptionBullets [
 			}
 			lastRight := 0
 			for _, sec := range f.Sections {
+				singleLineHunk := false
 				for _, l := range sec.Lines {
 					switch l.Type {
 					case gitdiff.DiffLineSection:
-						if l.SectionInfo != nil {
-							end := l.SectionInfo.RightIdx + l.SectionInfo.RightHunkSize - 1
-							fc.hunkSpans = append(fc.hunkSpans, [2]int{l.SectionInfo.RightIdx, end})
+						if si := l.SectionInfo; si != nil {
+							singleLineHunk = si.RightHunkSize == 0 // git omits ",count" when it is 1
+							if !singleLineHunk {
+								end := si.RightIdx + si.RightHunkSize - 1
+								fc.hunkSpans = append(fc.hunkSpans, [2]int{si.RightIdx, end})
+							}
 						}
 					case gitdiff.DiffLineAdd:
 						fc.changed[l.RightIdx]++
 						lastRight = l.RightIdx
+						if singleLineHunk { // the hunk is this single added line; pure-deletion sides ("+0,0") never get here
+							fc.hunkSpans = append(fc.hunkSpans, [2]int{l.RightIdx, l.RightIdx})
+							singleLineHunk = false
+						}
 					case gitdiff.DiffLineDel:
 						fc.changed[lastRight]++ // deletions anchor to the nearest preceding new-side line
 					case gitdiff.DiffLinePlain:

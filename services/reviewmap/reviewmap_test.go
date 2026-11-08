@@ -234,6 +234,42 @@ diff --git a/src/snapshots/ui.snap b/src/snapshots/ui.snap
 			},
 		},
 		{
+			name: "single-line hunks: refs valid and the added line counts toward coverage",
+			// git omits ",count" when count is 1, so both hunks below report a size of 0
+			patch: `diff --git a/VERSION b/VERSION
+new file mode 100644
+index 0000000..1234567
+--- /dev/null
++++ b/VERSION
+@@ -0,0 +1 @@
++1.2.3
+diff --git a/b.txt b/b.txt
+--- a/b.txt
++++ b/b.txt
+@@ -1 +1 @@
+-old
++new
+`,
+			m: &reviewmapmod.Map{Bullets: []reviewmapmod.Bullet{
+				{Text: "Bump version", Changes: []reviewmapmod.FileRange{
+					{File: "VERSION", StartLine: 1, EndLine: 1},
+					{File: "b.txt", StartLine: 1, EndLine: 1},
+				}},
+			}},
+			descBullets: []string{"Bump version"},
+			want: &Result{
+				Bullets: []BulletStatus{
+					bulletStatus(0, "Bump version", false,
+						refStatus("VERSION", 1, 1, true),
+						refStatus("b.txt", 1, 1, true),
+					),
+				},
+				// b.txt's deletion anchors at new-side position 0 (no preceding new line),
+				// which is never coverable, so b.txt is still listed as unmapped
+				Coverage: Coverage{TotalChanged: 3, MappedChanged: 2, UnmappedFiles: []string{"b.txt"}},
+			},
+		},
+		{
 			name: "fully deleted file: deletions unmapped, no new-side hunk, ref invalid",
 			patch: `diff --git a/gone.txt b/gone.txt
 deleted file mode 100644
@@ -325,16 +361,14 @@ diff --git a/app.ts b/app.ts
 			descBullets: []string{"Add app and pin submodule"},
 			want: &Result{
 				Bullets: []BulletStatus{
-					// the submodule ref is invalid like any ref to a file with no
-					// line-mappable hunks, but it still counts as "referenced"
+					// the submodule ref is valid: its "@@ -0,0 +1 @@" single-line hunk spans new-side line 1
 					bulletStatus(0, "Add app and pin submodule", false,
 						refStatus("app.ts", 1, 3, true),
-						refStatus("vendor/kept", 1, 1, false),
+						refStatus("vendor/kept", 1, 1, true),
 					),
 				},
-				InvalidRefCount: 1,
-				Coverage:        Coverage{TotalChanged: 1, MappedChanged: 1},
-				IgnoreGlobs:     []string{"vendor/gen"},
+				Coverage:    Coverage{TotalChanged: 1, MappedChanged: 1},
+				IgnoreGlobs: []string{"vendor/gen"},
 			},
 		},
 		{
