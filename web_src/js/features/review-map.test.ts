@@ -535,3 +535,19 @@ describe('tab card controls do not navigate', () => {
     spyAssign.mockRestore();
   });
 });
+
+describe('tab page wiring', () => {
+  test('chip and flag handlers are live on non-files pages (no navigation)', () => {
+    document.body.innerHTML = panelHTML;
+    const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    const card = document.querySelector('[data-bullet-index="0"]') as HTMLElement;
+    (card.querySelector('.review-map-ref-check') as HTMLInputElement).checked = true;
+    (card.querySelector('.review-map-ref-check') as HTMLInputElement).dispatchEvent(new Event('change', {bubbles: true}));
+    expect(POST).toHaveBeenCalledWith('/owner/repo/pulls/1/review-map/progress', {data: {hash: 'hash-a', refIndex: 0, reviewed: true}});
+    expect(card.classList.contains('review-map-approved')).toBeTruthy();
+    expect(spyAssign).not.toHaveBeenCalled();
+    spyAssign.mockRestore();
+  });
+});

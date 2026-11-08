@@ -230,17 +230,6 @@ export function initReviewMapPanel() {
   // interactive controls inside a card must not trigger the card's navigation/filter click
   const cardControls = '.review-map-check, .review-map-ref-check, .review-map-approve-chip, .review-map-flag-btn, .review-map-comment';
 
-  if (!isFilesPage()) {
-    // conversation page and Review Map tab: remember the clicked bullet and let the files page apply the filter
-    addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
-      if ((e.target as HTMLElement).closest(cardControls)) return;
-      e.preventDefault();
-      sessionStorage.setItem(filterStorageKey, bullet.getAttribute('data-bullet-index')!);
-      window.location.assign(`${data.issueLink}/files`);
-    });
-    return;
-  }
-
   const showAllButton = panel.querySelector<HTMLElement>('#review-map-show-all')!;
   const fallbackBox = panel.querySelector<HTMLElement>('#review-map-fallback')!;
 
@@ -351,7 +340,13 @@ export function initReviewMapPanel() {
   addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
     if ((e.target as HTMLElement).closest(cardControls)) return;
     e.preventDefault();
-    applyBulletByIndex(parseInt(bullet.getAttribute('data-bullet-index')!, 10));
+    if (isFilesPage()) {
+      applyBulletByIndex(parseInt(bullet.getAttribute('data-bullet-index')!, 10));
+      return;
+    }
+    // conversation page and Review Map tab: let the files page apply the filter
+    sessionStorage.setItem(filterStorageKey, bullet.getAttribute('data-bullet-index')!);
+    window.location.assign(`${data.issueLink}/files`);
   });
 
   // per-file approval inside a bullet: recount the card's chip from its checkboxes
@@ -450,23 +445,25 @@ export function initReviewMapPanel() {
     }
   });
 
-  showAllButton.addEventListener('click', () => {
-    clearBulletFilter(document);
-    hideElem(showAllButton);
-    setStripsOpen(null);
-    setActiveBullet(panel, null);
-    restoreStats();
-    if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
-    document.querySelector('#diff-file-boxes')?.removeAttribute('data-review-map-active');
-    sessionStorage.removeItem(filterStorageKey);
-    setMapParam(null);
-    notifyFilterChanged();
-  });
+  if (isFilesPage()) {
+    showAllButton.addEventListener('click', () => {
+      clearBulletFilter(document);
+      hideElem(showAllButton);
+      setStripsOpen(null);
+      setActiveBullet(panel, null);
+      restoreStats();
+      if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
+      document.querySelector('#diff-file-boxes')?.removeAttribute('data-review-map-active');
+      sessionStorage.removeItem(filterStorageKey);
+      setMapParam(null);
+      notifyFilterChanged();
+    });
 
-  const storedIndex = sessionStorage.getItem(filterStorageKey);
-  const mapParam = new URLSearchParams(window.location.search).get('map');
-  const initialIndex = mapParam !== null ? parseInt(mapParam, 10) : (storedIndex !== null ? parseInt(storedIndex, 10) : null);
-  if (initialIndex !== null && Number.isFinite(initialIndex)) {
-    applyBulletByIndex(initialIndex); // kept until "Show all files": reloads stay filtered
+    const storedIndex = sessionStorage.getItem(filterStorageKey);
+    const mapParam = new URLSearchParams(window.location.search).get('map');
+    const initialIndex = mapParam !== null ? parseInt(mapParam, 10) : (storedIndex !== null ? parseInt(storedIndex, 10) : null);
+    if (initialIndex !== null && Number.isFinite(initialIndex)) {
+      applyBulletByIndex(initialIndex); // kept until "Show all files": reloads stay filtered
+    }
   }
 }
