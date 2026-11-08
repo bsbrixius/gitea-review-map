@@ -181,6 +181,7 @@ export function initReviewMapPanel() {
     if (applyBulletFilter(bullet, document)) {
       showElem(showAllButton);
       setActiveBullet(panel, index);
+      sessionStorage.setItem(filterStorageKey, String(index)); // reloads keep the active filter
       const visibleCount = document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)').length;
       showBulletStats(bullet, visibleCount, totalBoxCount);
       document.querySelector('tr.review-map-line-highlight')?.scrollIntoView({block: 'center'});
