@@ -318,3 +318,107 @@ func TestSkillExampleParses(t *testing.T) {
 	assert.GreaterOrEqual(t, len(m.Bullets), 2)
 	assert.NotEmpty(t, m.Ignore)
 }
+
+func TestParseSummaries(t *testing.T) {
+	limits := Limits{MaxBullets: 50, MaxFilesPerBullet: 10, MaxBlockBytes: 4096}
+	long := strings.Repeat("x", 281)
+	detail := strings.Repeat("d", 201)
+
+	type testcase struct {
+		name    string
+		block   string
+		want    *Map
+		wantErr string
+	}
+	tests := []testcase{
+		{
+			name: "summary, details and per-file notes parse",
+			block: "bullets:\n" +
+				"  - bullet: \"Change one\"\n" +
+				"    summary: \"Cheap read instead of full list.\"\n" +
+				"    details:\n" +
+				"      - \"First background line.\"\n" +
+				"      - \"Second background line.\"\n" +
+				"    changes:\n" +
+				"      - file: a.cs\n" +
+				"        lines: 1-2\n" +
+				"        note: \"The interface part.\"\n" +
+				"      - file: b.cs\n" +
+				"        lines: 3-4\n",
+			want: &Map{
+				Ignore: []string{},
+				Bullets: []Bullet{{
+					Text:    "Change one",
+					Summary: "Cheap read instead of full list.",
+					Details: []string{"First background line.", "Second background line."},
+					Changes: []FileRange{{File: "a.cs", StartLine: 1, EndLine: 2, Note: "The interface part."}, {File: "b.cs", StartLine: 3, EndLine: 4}},
+				}},
+			},
+		},
+		{
+			name: "summary after changes and empty details list",
+			block: "bullets:\n" +
+				"  - bullet: \"Change two\"\n" +
+				"    changes:\n" +
+				"      - file: a.cs\n" +
+				"        lines: 5\n" +
+				"    summary: \"Position is free.\"\n" +
+				"    details:\n",
+			want: &Map{
+				Ignore: []string{},
+				Bullets: []Bullet{{
+					Text: "Change two", Summary: "Position is free.", Details: []string{},
+					Changes: []FileRange{{File: "a.cs", StartLine: 5, EndLine: 5}},
+				}},
+			},
+		},
+		{
+			name:    "summary over 280 chars",
+			block:   "bullets:\n  - bullet: \"B\"\n    summary: \"" + long + "\"\n",
+			wantErr: "summary",
+		},
+		{
+			name:    "note over 280 chars",
+			block:   "bullets:\n  - bullet: \"B\"\n    changes:\n      - file: a.cs\n        lines: 1\n        note: \"" + long + "\"\n",
+			wantErr: "note",
+		},
+		{
+			name:    "details over 8 lines",
+			block:   "bullets:\n  - bullet: \"B\"\n    details:\n" + strings.Repeat("      - \"d\"\n", 9),
+			wantErr: "details",
+		},
+		{
+			name:    "details line over 200 chars",
+			block:   "bullets:\n  - bullet: \"B\"\n    details:\n      - \"" + detail + "\"\n",
+			wantErr: "detail",
+		},
+		{
+			name:    "details item not quoted",
+			block:   "bullets:\n  - bullet: \"B\"\n    details:\n      - plain text\n",
+			wantErr: "quoted",
+		},
+		{
+			name:    "note at bullet level is an unknown key",
+			block:   "bullets:\n  - bullet: \"B\"\n    note: \"misplaced\"\n",
+			wantErr: "misplaced",
+		},
+		{
+			name:    "duplicate summary for one bullet",
+			block:   "bullets:\n  - bullet: \"B\"\n    summary: \"one\"\n    summary: \"two\"\n",
+			wantErr: "duplicate",
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m, err := Parse(tc.block, limits)
+			if tc.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tc.wantErr)
+				assert.Nil(t, m)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, m)
+		})
+	}
+}

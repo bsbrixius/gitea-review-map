@@ -16,13 +16,22 @@ type Limits struct {
 	MaxBullets, MaxFilesPerBullet, MaxBlockBytes int
 }
 
+const (
+	maxSummaryLen  = 280 // summary/note character cap
+	maxDetailLines = 8   // details items per bullet
+	maxDetailLen   = 200 // characters per details item
+)
+
 type FileRange struct {
 	File               string
 	StartLine, EndLine int // inclusive, new-side
+	Note               string
 }
 
 type Bullet struct {
 	Text    string
+	Summary string
+	Details []string
 	Changes []FileRange
 }
 
@@ -129,6 +138,9 @@ type blockParser struct {
 	inChanges     bool
 	curRange      *FileRange
 	curRangeReady bool
+	inDetails     bool // inside a bullet's "details:" list
+	hasSummary    bool
+	hasDetails    bool
 }
 
 func (p *blockParser) parseLine(line string) error {
@@ -164,6 +176,7 @@ func (p *blockParser) parseTopLevelLine(line string) error {
 		}
 		p.seenKeys[key] = true
 		p.section, p.curBullet, p.inChanges, p.curRange = key, nil, false, nil
+		p.inDetails, p.hasSummary, p.hasDetails = false, false, false
 		return nil
 	case strings.HasPrefix(line, "ignore:") || strings.HasPrefix(line, "bullets:"):
 		return fmt.Errorf("top-level key must not carry a value: %q", line)
@@ -218,28 +231,82 @@ func (p *blockParser) parseBulletItem(rest string) error {
 		return fmt.Errorf("too many bullets (%d > limit %d)", len(p.m.Bullets), p.limits.MaxBullets)
 	}
 	p.curBullet, p.inChanges, p.curRange = &p.m.Bullets[len(p.m.Bullets)-1], false, nil
+	p.inDetails, p.hasSummary, p.hasDetails = false, false, false
 	return nil
 }
 
 func (p *blockParser) parseChangesLine(line string) error {
-	if line != "changes:" {
-		return fmt.Errorf(`expected "changes:" key, got %q`, line)
+	switch {
+	case line == "changes:":
+		if p.curBullet == nil {
+			return errors.New(`"changes:" without a bullet`)
+		}
+		if p.hasPendingRange() {
+			return errors.New(`missing "lines" for the previous file entry`)
+		}
+		if p.inChanges {
+			return errors.New(`duplicate "changes:" key for a bullet`)
+		}
+		p.inChanges, p.inDetails = true, false
+		p.curRange = nil
+		return nil
+	case strings.HasPrefix(line, "summary: "):
+		if p.curBullet == nil {
+			return errors.New(`"summary:" without a bullet`)
+		}
+		if p.hasPendingRange() {
+			return errors.New(`missing "lines" for the previous file entry`)
+		}
+		if p.hasSummary {
+			return errors.New(`duplicate "summary:" key for a bullet`)
+		}
+		summary, err := parseQuotedString(line[len("summary: "):])
+		if err != nil {
+			return err
+		}
+		if len(summary) > maxSummaryLen {
+			return fmt.Errorf("summary must not exceed %d characters (got %d)", maxSummaryLen, len(summary))
+		}
+		p.curBullet.Summary, p.hasSummary, p.inDetails = summary, true, false
+		return nil
+	case line == "details:":
+		if p.curBullet == nil {
+			return errors.New(`"details:" without a bullet`)
+		}
+		if p.hasPendingRange() {
+			return errors.New(`missing "lines" for the previous file entry`)
+		}
+		if p.hasDetails {
+			return errors.New(`duplicate "details:" key for a bullet`)
+		}
+		if p.curBullet.Details == nil {
+			p.curBullet.Details = []string{}
+		}
+		p.hasDetails, p.inDetails = true, true
+		return nil
+	default:
+		return fmt.Errorf(`expected "changes:", "summary:" or "details:", got %q`, line)
 	}
-	if p.curBullet == nil {
-		return errors.New(`"changes:" without a bullet`)
-	}
-	if p.hasPendingRange() {
-		return errors.New(`missing "lines" for the previous file entry`)
-	}
-	if p.inChanges {
-		return errors.New(`duplicate "changes:" key for a bullet`)
-	}
-	p.inChanges = true
-	p.curRange = nil
-	return nil
 }
 
 func (p *blockParser) parseFileLine(line string) error {
+	if p.inDetails {
+		if !strings.HasPrefix(line, "- ") {
+			return fmt.Errorf(`expected a details item "- ", got %q`, line)
+		}
+		item, err := parseQuotedString(line[2:])
+		if err != nil {
+			return err
+		}
+		if len(item) > maxDetailLen {
+			return fmt.Errorf("details item must not exceed %d characters (got %d)", maxDetailLen, len(item))
+		}
+		p.curBullet.Details = append(p.curBullet.Details, item)
+		if len(p.curBullet.Details) > maxDetailLines {
+			return fmt.Errorf("too many details items (%d > limit %d)", len(p.curBullet.Details), maxDetailLines)
+		}
+		return nil
+	}
 	if !strings.HasPrefix(line, "- file:") {
 		return fmt.Errorf(`expected "- file: <path>", got %q`, line)
 	}
@@ -269,6 +336,20 @@ func (p *blockParser) parseFileLine(line string) error {
 }
 
 func (p *blockParser) parseLinesLine(line string) error {
+	if strings.HasPrefix(line, "note: ") {
+		if p.curRange == nil || !p.curRangeReady {
+			return errors.New(`"note:" must follow the "lines:" of a file entry`)
+		}
+		note, err := parseQuotedString(line[len("note: "):])
+		if err != nil {
+			return err
+		}
+		if len(note) > maxSummaryLen {
+			return fmt.Errorf("note must not exceed %d characters (got %d)", maxSummaryLen, len(note))
+		}
+		p.curRange.Note, p.inDetails = note, false
+		return nil
+	}
 	if !strings.HasPrefix(line, "lines:") {
 		return fmt.Errorf(`expected "lines: <N> or <N>-<M>", got %q`, line)
 	}
