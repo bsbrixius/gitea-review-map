@@ -280,6 +280,16 @@ export function initReviewMapPanel() {
   });
   buildStripRows(data, document);
 
+  // ?map=<index> deep link: the URL wins over the sessionStorage handoff, and selections
+  // rewrite it so a filtered view is shareable as-is
+  const setMapParam = (index: number | null) => {
+    const params = new URLSearchParams(window.location.search);
+    if (index === null) params.delete('map');
+    else params.set('map', String(index));
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  };
+
   const notifyFilterChanged = () => {
     document.dispatchEvent(new CustomEvent('review-map:filter-changed'));
   };
@@ -310,6 +320,7 @@ export function initReviewMapPanel() {
       setActiveBullet(panel, index);
       setStripsOpen(index);
       sessionStorage.setItem(filterStorageKey, String(index)); // reloads keep the active filter
+      setMapParam(index); // the URL mirrors the selection so the view is shareable
       const visibleCount = document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)').length;
       showBulletStats(bullet, visibleCount, totalBoxCount);
       if (approveChangeButton) {
@@ -408,11 +419,14 @@ export function initReviewMapPanel() {
     restoreStats();
     if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
     sessionStorage.removeItem(filterStorageKey);
+    setMapParam(null);
     notifyFilterChanged();
   });
 
   const storedIndex = sessionStorage.getItem(filterStorageKey);
-  if (storedIndex !== null) {
-    applyBulletByIndex(parseInt(storedIndex, 10)); // kept until "Show all files": reloads stay filtered
+  const mapParam = new URLSearchParams(window.location.search).get('map');
+  const initialIndex = mapParam !== null ? parseInt(mapParam, 10) : (storedIndex !== null ? parseInt(storedIndex, 10) : null);
+  if (initialIndex !== null && Number.isFinite(initialIndex)) {
+    applyBulletByIndex(initialIndex); // kept until "Show all files": reloads stay filtered
   }
 }

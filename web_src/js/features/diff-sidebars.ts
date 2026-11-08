@@ -138,16 +138,26 @@ function initTreeNarrowing(tree: HTMLElement): void {
   document.addEventListener('review-map:filter-changed', applyFromDom);
   observer.observe(tree, {childList: true, subtree: true});
 
-  const toggle = document.querySelector<HTMLInputElement>('#review-map-tree-toggle');
-  if (toggle) {
-    toggle.checked = localUserSettings.getBoolean(treeDimKey, false);
-    toggle.addEventListener('click', (e) => {
-      e.stopPropagation(); // keep the Diff Options dropdown open while toggling
-    });
-    toggle.addEventListener('change', () => {
-      localUserSettings.setBoolean(treeDimKey, toggle.checked);
+  // header button with a label that flips to the opposite action ("Show non-change files"
+  // while they are hidden, "Hide non-change files" while they are dimmed); visible only
+  // while a change filter is active
+  const modeBtn = document.querySelector<HTMLElement>('#review-map-tree-mode-btn');
+  if (modeBtn) {
+    const refresh = () => {
+      const dimOthers = localUserSettings.getBoolean(treeDimKey, false);
+      const label = modeBtn.getAttribute(dimOthers ? 'data-hide-others' : 'data-show-others') || '';
+      modeBtn.textContent = label;
+      modeBtn.setAttribute('data-tooltip-content', label);
+      const filterActive = tree.classList.contains('review-map-tree-hide') || tree.classList.contains('review-map-tree-dim');
+      toggleElem(modeBtn, filterActive);
+    };
+    modeBtn.addEventListener('click', () => {
+      localUserSettings.setBoolean(treeDimKey, !localUserSettings.getBoolean(treeDimKey, false));
       applyFromDom();
+      refresh();
     });
+    document.addEventListener('review-map:filter-changed', refresh);
+    refresh();
   }
 }
 
@@ -161,18 +171,14 @@ export function initDiffSidebars() {
   const map = document.querySelector<HTMLElement>('.review-map-sidebar');
   if (map) enableHorizontalResize(map, mapWidthKey, 240, Math.min(860, window.innerWidth * 0.5), 90);
 
-  // file-tree-style toggle button (rendered in the diff header next to the tree toggle)
+  // tasklist-icon toggle button in the diff header (distinct from the file-tree toggle)
   const toggleBtn = document.querySelector<HTMLElement>('#review-map-toggle');
   if (!map || !toggleBtn) return;
   const setHidden = (hidden: boolean) => {
     toggleElem(map, !hidden);
-    // same reversed-icon convention as the file tree button: visible shows "expand"
-    toggleBtn.querySelector('.octicon-sidebar-expand')?.classList.toggle('tw-hidden', hidden);
-    toggleBtn.querySelector('.octicon-sidebar-collapse')?.classList.toggle('tw-hidden', !hidden);
     toggleBtn.setAttribute('data-tooltip-content', toggleBtn.getAttribute(hidden ? 'data-show-text' : 'data-hide-text') || '');
     localUserSettings.setBoolean(mapHiddenKey, hidden);
   };
   toggleBtn.addEventListener('click', () => setHidden(!map.classList.contains('tw-hidden')));
-  // always run once: it also unhides the state icon (the template ships with both hidden)
   setHidden(localUserSettings.getBoolean(mapHiddenKey, false));
 }

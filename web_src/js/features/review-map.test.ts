@@ -456,3 +456,18 @@ describe('plain-english strips', () => {
     expect(stripA.classList.contains('review-map-strip-open')).toBeTruthy();
   });
 });
+
+describe('?map= deep link', () => {
+  test('a map URL param applies that change on load and wins over sessionStorage', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    sessionStorage.setItem('review-map-filter', '0');
+    window.history.replaceState(null, '', '/owner/repo/pulls/1/files?map=1');
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    expect(document.querySelector('.review-map-bullet.review-map-active')!.getAttribute('data-bullet-index')).toBe('1');
+    expect(window.location.search).toContain('map=1');
+    (document.querySelector('#review-map-show-all') as HTMLElement).click();
+    expect(window.location.search).not.toContain('map=');
+    window.history.replaceState(null, '', '/');
+  });
+});

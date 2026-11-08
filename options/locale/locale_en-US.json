@@ -1939,6 +1939,8 @@
   "review_map.approve_change": "Approve change",
   "review_map.approve_change_tooltip": "Approve every file of the selected change",
   "review_map.tree_dim_others": "Show non-change files dimmed",
+  "review_map.tree_show_others": "Show non-change files",
+  "review_map.tree_hide_others": "Hide non-change files",
   "review_map.strip_more": "More",
   "review_map.strip_less": "Less",
   "review_map.strip_close": "Close",

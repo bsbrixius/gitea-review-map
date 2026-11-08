@@ -4,9 +4,10 @@
 		<div class="flex-text-block tw-flex-wrap tw-ml-0.5">
 			{{if and .PageIsPullFiles .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
 				<button id="review-map-toggle" class="not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "review_map.show_panel"}}" data-hide-text="{{ctx.Locale.Tr "review_map.hide_panel"}}">
-					{{svg "octicon-sidebar-collapse" 20 "icon tw-hidden"}}
-					{{svg "octicon-sidebar-expand" 20 "icon tw-hidden"}}
+					{{/* tasklist distinguishes this from the file-tree toggle beside it */}}
+					{{svg "octicon-tasklist" 20 "icon"}}
 				</button>
+				<button id="review-map-tree-mode-btn" class="not-mobile btn interact-fg tw-hidden" data-show-others="{{ctx.Locale.Tr "review_map.tree_show_others"}}" data-hide-others="{{ctx.Locale.Tr "review_map.tree_hide_others"}}"></button>
 			{{end}}
 			{{if $showFileTree}}
 				<button class="diff-toggle-file-tree-button not-mobile btn interact-fg" data-show-text="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}" data-hide-text="{{ctx.Locale.Tr "repo.diff.hide_file_tree"}}">
