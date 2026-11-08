@@ -68,11 +68,11 @@
   gap: 8px;
 }
 
-.review-map-sidebar .review-map-bullets {
+.review-map-cards .review-map-bullets {
   counter-reset: review-map-bullet;
 }
 
-.review-map-sidebar .review-map-bullet {
+.review-map-cards .review-map-bullet {
   counter-increment: review-map-bullet;
   padding: 8px;
   border: 1px solid var(--color-secondary);
@@ -80,20 +80,20 @@
   cursor: pointer;
 }
 
-.review-map-sidebar .review-map-bullet-no::before {
+.review-map-cards .review-map-bullet-no::before {
   content: counter(review-map-bullet);
 }
 
-.review-map-sidebar .review-map-bullet:hover {
+.review-map-cards .review-map-bullet:hover {
   background: var(--color-hover);
 }
 
-.review-map-sidebar .review-map-bullet.review-map-active {
+.review-map-cards .review-map-bullet.review-map-active {
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
-.review-map-sidebar .review-map-bullet-no {
+.review-map-cards .review-map-bullet-no {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -107,22 +107,22 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.review-map-sidebar .review-map-bullet.review-map-active .review-map-bullet-no {
+.review-map-cards .review-map-bullet.review-map-active .review-map-bullet-no {
   background: var(--color-primary);
   color: var(--color-primary-contrast);
 }
 
-.review-map-sidebar .review-map-bullet-stats {
+.review-map-cards .review-map-bullet-stats {
   display: flex;
   gap: 6px;
 }
 
-.review-map-sidebar .review-map-refs {
+.review-map-cards .review-map-refs {
   gap: 2px;
 }
 
-.review-map-sidebar .review-map-refs .review-map-ref,
-.review-map-sidebar .review-map-refs .review-map-comment {
+.review-map-cards .review-map-refs .review-map-ref,
+.review-map-cards .review-map-refs .review-map-comment {
   width: fit-content;
   max-width: 100%;
   overflow: hidden;
@@ -158,19 +158,19 @@
   box-shadow: inset 2px 0 0 var(--color-primary);
 }
 
-.review-map-sidebar .review-map-approve-chip {
+.review-map-cards .review-map-approve-chip {
   cursor: pointer;
   border: none;
 }
 
-.review-map-sidebar .review-map-refs > span {
+.review-map-cards .review-map-refs > span {
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
 }
 
-.review-map-sidebar .review-map-ref-check {
+.review-map-cards .review-map-ref-check {
   flex-shrink: 0;
 }
 
@@ -303,7 +303,7 @@ tr.review-map-strip > td {
 }
 
 /* sidebar summary echo under each change */
-.review-map-sidebar .review-map-summary {
+.review-map-cards .review-map-summary {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -335,4 +335,9 @@ tr.review-map-strip > td {
 /* the Review Map tab: full-width change cards */
 .review-map-tab {
   max-width: 900px;
+}
+
+/* inline file note beside its ref (cards and Review Map tab) */
+.review-map-cards .review-map-ref-note {
+  overflow-wrap: anywhere;
 }

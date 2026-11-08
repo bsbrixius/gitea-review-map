@@ -1,5 +1,5 @@
 {{/* shared change cards: included by the files-page sidebar and the Review Map tab */}}
-<div class="review-map-bullets tw-flex tw-flex-col tw-gap-2">
+<div class="review-map-bullets review-map-cards tw-flex tw-flex-col tw-gap-2">
 	{{range .ReviewMapData.Bullets}}
 		{{$bullet := .}}
 		{{$approval := index $.ReviewMapData.BulletApproval .Index}}
@@ -30,6 +30,7 @@
 									<input type="checkbox" class="review-map-ref-check" data-ref-index="{{$i}}" aria-label="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}" title="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}"{{if index $.ReviewMapMyApprovedRefs (printf "%s:i%d" $bullet.Hash $i)}} checked{{end}}>
 								{{end}}
 								<a class="review-map-ref{{if not $ref.Valid}} tw-text-error{{end}}" href="{{$.Issue.Link}}/files" data-ref-file="{{$ref.File}}" data-ref-start="{{$ref.StartLine}}" data-ref-end="{{$ref.EndLine}}" data-name-hash="{{$ref.NameHash}}">{{$ref.File}}:{{$ref.StartLine}}-{{$ref.EndLine}}{{if not $ref.Valid}} {{svg "octicon-alert" 12}}{{end}}</a>
+								{{if $ref.Note}}<span class="review-map-ref-note tw-text-grey tw-text-12" title="{{$ref.Note}}">— {{$ref.Note}}</span>{{end}}
 							</span>
 						{{end}}
 						{{range index $.ReviewMapData.CommentLinks .Hash}}
