@@ -3,7 +3,7 @@
 	{{range .ReviewMapData.Bullets}}
 		{{$bullet := .}}
 		{{$approval := index $.ReviewMapData.BulletApproval .Index}}
-		<div class="review-map-bullet" data-bullet-index="{{.Index}}" data-bullet-hash="{{.Hash}}">
+		<div class="review-map-bullet{{if index $.ReviewMapMyFlagged .Hash}} review-map-is-flagged{{end}}" data-bullet-index="{{.Index}}" data-bullet-hash="{{.Hash}}">
 			<div class="tw-flex tw-items-start tw-gap-2">
 				<span class="review-map-bullet-no" aria-hidden="true"></span>
 				<div class="tw-min-w-0 tw-flex tw-flex-col tw-gap-1">
