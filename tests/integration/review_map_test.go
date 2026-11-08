@@ -12,6 +12,8 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	"gitea.dev/modules/setting"
+	"gitea.dev/modules/test"
 	"gitea.dev/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -54,4 +56,22 @@ func TestReviewMapProgressEndpoint(t *testing.T) {
 	// anonymous requests are rejected by the sign-in middleware
 	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"hash": hash, "reviewed": true})
 	emptyTestSession(t).MakeRequest(t, req, http.StatusSeeOther)
+}
+
+func TestReviewMapProgressEndpointDisabled(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.ReviewMap.Enabled, false)()
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithJSON(t, "POST", "/user2/repo1/pulls/3/review-map/progress", map[string]any{"hash": "x", "reviewed": true})
+	session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func TestReviewMapProgressEndpointNotAPullRequest(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// issue #4 in user2/repo1 is a plain issue, so getPullInfo redirects instead of erroring
+	session := loginUser(t, "user2")
+	req := NewRequestWithJSON(t, "POST", "/user2/repo1/pulls/4/review-map/progress", map[string]any{"hash": "x", "reviewed": true})
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
