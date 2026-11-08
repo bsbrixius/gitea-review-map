@@ -251,7 +251,7 @@ for b in "${!BULLETS[@]}"; do
     [ -n "$ranges" ] || die "no ranges found for $f"
     for r in $ranges; do
       MAP_BLOCK+=$'\n'"      - file: $f"$'\n'"        lines: $r"
-      [ -n "${NOTES[$b:$f]}" ] && MAP_BLOCK+=$'\n'"        note: \"${NOTES[$b:$f]}\""
+      [ -n "${NOTES[$b:$f]-}" ] && MAP_BLOCK+=$'\n'"        note: \"${NOTES[$b:$f]}\""
     done
   done
 done
