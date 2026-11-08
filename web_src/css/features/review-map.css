@@ -72,11 +72,15 @@
   counter-reset: review-map-bullet;
 }
 
+/* change cards: the left spine encodes review state (neutral / selected /
+   approved / flagged) — the one place this design spends its boldness */
 .review-map-cards .review-map-bullet {
   counter-increment: review-map-bullet;
-  padding: 8px;
+  padding: 10px 12px 10px 14px;
   border: 1px solid var(--color-secondary);
-  border-radius: var(--border-radius);
+  border-radius: 8px;
+  background: var(--color-box-body);
+  box-shadow: inset 3px 0 0 var(--color-secondary);
   cursor: pointer;
 }
 
@@ -91,6 +95,16 @@
 .review-map-cards .review-map-bullet.review-map-active {
   border-color: var(--color-primary);
   background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.review-map-cards .review-map-bullet.review-map-approved {
+  box-shadow: inset 3px 0 0 var(--color-green);
+}
+
+.review-map-cards .review-map-bullet.review-map-is-flagged {
+  border-color: var(--color-red);
+  box-shadow: inset 3px 0 0 var(--color-red);
 }
 
 .review-map-cards .review-map-bullet-no {
@@ -100,11 +114,13 @@
   justify-content: center;
   min-width: 22px;
   height: 22px;
-  padding: 0 6px;
+  padding: 0 7px;
   border-radius: 11px;
   background: var(--color-secondary);
+  font-family: var(--fonts-monospace, monospace);
   font-size: 12px;
   font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
 }
 
 .review-map-cards .review-map-bullet.review-map-active .review-map-bullet-no {
@@ -112,13 +128,19 @@
   color: var(--color-primary-contrast);
 }
 
+.review-map-cards .review-map-bullet-text {
+  font-weight: var(--font-weight-semibold);
+  font-size: 14px;
+}
+
 .review-map-cards .review-map-bullet-stats {
   display: flex;
   gap: 6px;
+  font-variant-numeric: tabular-nums;
 }
 
 .review-map-cards .review-map-refs {
-  gap: 2px;
+  gap: 3px;
 }
 
 .review-map-cards .review-map-refs .review-map-ref,
@@ -127,6 +149,31 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--fonts-monospace, monospace);
+  font-size: 12px;
+}
+
+/* quiet chips by default: the solid color arrives only with a state */
+.review-map-cards .review-map-approve-chip,
+.review-map-cards .review-map-flag-btn {
+  border: 1px solid var(--color-secondary);
+  background: transparent;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .review-map-cards .review-map-bullet,
+  .review-map-cards .review-map-approve-chip,
+  .review-map-cards .review-map-flag-btn {
+    transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+  }
+}
+
+/* the Review Map tab: a recessed bed so the lifted cards read as surfaces */
+.review-map-tab .review-map-cards {
+  background: color-mix(in srgb, var(--color-text) 4%, transparent);
+  padding: 10px;
+  border-radius: 8px;
 }
 
 .review-map-sidebar .review-map-sidebar-footer details {
@@ -304,6 +351,7 @@ tr.review-map-strip > td {
 
 /* sidebar summary echo under each change */
 .review-map-cards .review-map-summary {
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;

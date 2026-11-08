@@ -357,12 +357,14 @@ export function initReviewMapPanel() {
     if (!chip) return;
     const checks = Array.from(bullet.querySelectorAll<HTMLInputElement>('.review-map-ref-check'));
     const approved = checks.filter((c) => c.checked).length;
+    const all = checks.length > 0 && approved === checks.length;
     chip.setAttribute('data-approved', String(approved));
     chip.setAttribute('data-total', String(checks.length));
     chip.querySelector('.review-map-chip-count')!.textContent = `${approved}/${checks.length}`;
-    chip.classList.toggle('review-map-done', checks.length > 0 && approved === checks.length);
-    chip.classList.toggle('tw-bg-green', checks.length > 0 && approved === checks.length);
-    chip.classList.toggle('tw-text-white', checks.length > 0 && approved === checks.length);
+    chip.classList.toggle('review-map-done', all);
+    chip.classList.toggle('tw-bg-green', all);
+    chip.classList.toggle('tw-text-white', all);
+    bullet.classList.toggle('review-map-approved', all && !bullet.classList.contains('review-map-is-flagged'));
   };
 
   const panelApproval = (): {approved: number, total: number}[] =>

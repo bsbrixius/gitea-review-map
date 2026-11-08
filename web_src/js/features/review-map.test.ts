@@ -505,3 +505,19 @@ describe('discussion flags', () => {
     expect(POST).toHaveBeenCalledWith('/owner/repo/pulls/1/review-map/progress', {data: {hash: 'hash-a', refIndex: 0, reviewed: false}});
   });
 });
+
+describe('card state spine', () => {
+  test('approving every ref adds the approved class to the card', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    const card = document.querySelector('[data-bullet-index="0"]') as HTMLElement;
+    const check = card.querySelector('.review-map-ref-check') as HTMLInputElement;
+    check.checked = true;
+    check.dispatchEvent(new Event('change', {bubbles: true}));
+    expect(card.classList.contains('review-map-approved')).toBeTruthy();
+    check.checked = false;
+    check.dispatchEvent(new Event('change', {bubbles: true}));
+    expect(card.classList.contains('review-map-approved')).toBeFalsy();
+  });
+});
