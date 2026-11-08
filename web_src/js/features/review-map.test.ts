@@ -1,4 +1,4 @@
-import {applyBulletFilter, buildStripRows, clearBulletFilter, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
+import {applyBulletFilter, buildStripRows, clearBulletFilter, collapseReviewMapFences, initReviewMapPanel, isFilesPage, nextUnapprovedBulletIndex, setActiveBullet} from './review-map.ts';
 import {applyTreeFilter} from './diff-sidebars.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
 import {POST} from '../modules/fetch.ts';
@@ -580,5 +580,35 @@ describe('conversation toggle', () => {
     initReviewMapPanel();
     expect(document.querySelector('#review-map-conv-strip')!.classList.contains('tw-hidden')).toBeFalsy();
     localUserSettings.setBoolean('review-map-conv-open', false);
+  });
+});
+
+describe('raw block collapse', () => {
+  test('the fenced review-map pre hides behind a working toggle', () => {
+    document.body.innerHTML = `
+<div class="render-content">
+  <pre class="code-block"><code class="chroma language-review-map display">ignore:</code></pre>
+</div>`;
+    collapseReviewMapFences();
+    const pre = document.querySelector('pre')!;
+    const toggle = document.querySelector('.review-map-fence-toggle') as HTMLElement;
+    expect(toggle).toBeTruthy();
+    expect(pre.classList.contains('tw-hidden')).toBeTruthy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    toggle.click();
+    expect(pre.classList.contains('tw-hidden')).toBeFalsy();
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    toggle.click();
+    expect(pre.classList.contains('tw-hidden')).toBeTruthy();
+    // idempotent: a second pass must not add another toggle
+    collapseReviewMapFences();
+    expect(document.querySelectorAll('.review-map-fence-toggle')).toHaveLength(1);
+  });
+
+  test('other code blocks are left untouched', () => {
+    document.body.innerHTML = `<pre><code class="language-go">func main() {}</code></pre>`;
+    collapseReviewMapFences();
+    expect(document.querySelector('pre')!.classList.contains('tw-hidden')).toBeFalsy();
+    expect(document.querySelector('.review-map-fence-toggle')).toBeFalsy();
   });
 });

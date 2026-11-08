@@ -31,6 +31,7 @@ import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initDiffSidebars} from './features/diff-sidebars.ts';
+import {collapseReviewMapFences} from './features/review-map.ts';
 import {initReviewMapPanel} from './features/review-map.ts';
 import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
@@ -157,6 +158,7 @@ const initPerformanceTracer = callInitFunctions([
   initUserSettings,
   initRepoDiffView,
   initDiffSidebars,
+  collapseReviewMapFences,
   initReviewMapPanel,
   initColorPickers,
 

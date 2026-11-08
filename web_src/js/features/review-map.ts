@@ -216,7 +216,30 @@ export function nextUnapprovedBulletIndex(approval: {approved: number, total: nu
   return -1;
 }
 
+// collapseReviewMapFences hides the raw ```review-map block behind a small toggle so the
+// rendered description stays readable; the data remains one click away. Runs on any page
+// whose rendered markdown contains the fenced block (PR description, comments).
+export function collapseReviewMapFences(root: Document | HTMLElement = document): void {
+  for (const code of Array.from(root.querySelectorAll('pre code.language-review-map'))) {
+    const pre = code.closest('pre');
+    if (!pre || pre.previousElementSibling?.classList.contains('review-map-fence-toggle')) continue;
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'btn interact-fg review-map-fence-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.textContent = 'review-map ▸';
+    pre.before(toggle);
+    pre.classList.add('tw-hidden');
+    toggle.addEventListener('click', () => {
+      const open = pre.classList.toggle('tw-hidden');
+      toggle.setAttribute('aria-expanded', String(!open));
+      toggle.textContent = open ? 'review-map ▸' : 'review-map ▾';
+    });
+  }
+}
+
 export function initReviewMapPanel() {
+  collapseReviewMapFences();
   // conversation page: the summary lives collapsed inside the PR's first comment
   const convToggle = document.querySelector<HTMLElement>('#review-map-conv-toggle');
   const convStrip = document.querySelector<HTMLElement>('#review-map-conv-strip');

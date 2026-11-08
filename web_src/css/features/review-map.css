@@ -387,9 +387,19 @@ tr.review-map-strip > td {
   max-width: 900px;
 }
 
-/* inline file note beside its ref (cards and Review Map tab) */
+/* per-file note sits UNDER its reference, visually attached to it */
+.review-map-cards .review-map-ref-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
 .review-map-cards .review-map-ref-note {
   color: var(--color-text-light-1);
+  margin: 0 0 2px 26px;
+  padding: 1px 0 1px 8px;
+  border-left: 2px solid var(--color-secondary);
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
@@ -428,4 +438,24 @@ tr.review-map-strip > td {
 
 #review-map-conv-strip {
   margin-top: 8px;
+}
+
+/* the raw review-map block in rendered markdown: collapsed behind a quiet toggle */
+.review-map-fence-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-light-1);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: none;
+  cursor: pointer;
+  padding: 1px 8px;
+  margin-bottom: 4px;
+}
+
+.review-map-fence-toggle:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
 }
