@@ -420,6 +420,12 @@ func prepareMigrationTasks() []*migration {
 		newMigration(340, "Add ContinueOnError column to ActionRunJob", v1_27.AddContinueOnErrorToActionRunJob),
 		newMigration(341, "Convert legacy MSSQL DATETIME columns to DATETIME2", v1_27.FixLegacyMSSQLDateTimeColumns),
 		newMigration(342, "Add scoped workflows schema", v1_27.AddScopedWorkflowsSchema),
+		// FORK (review-map): v343 is a fork-only migration. Upstream's next release will add
+		// its own v343; when rebasing onto it, renumber this entry and models/migrations/v1_27/v343.go
+		// to the next free ID after upstream's list (and bump any fork DB created by this build).
+		// calcDBVersion/getPendingMigrations require strictly sequential IDs (db version =
+		// minDBVersion + len(migrations), pending slice indexed by version), so reserving a
+		// non-sequential fork range here is not possible.
 		newMigration(343, "Add review map progress table", v1_27.AddReviewMapProgress),
 	}
 	return preparedMigrations

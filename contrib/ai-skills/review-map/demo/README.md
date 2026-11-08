@@ -246,6 +246,13 @@ rows visible.
 
 ## Notes
 
+- **Renumber on upstream rebase**: this fork carries one DB migration of its
+  own, v343 "Add review map progress table"
+  (`models/migrations/v1_27/v343.go`). Upstream will eventually ship its own
+  v343, so when rebasing this fork onto a newer upstream `main`, renumber the
+  fork's entry and file to the next free migration ID after upstream's list
+  (the migrator requires strictly sequential IDs; see the comment at the entry
+  in `models/migrations/migrations.go`).
 - The scripts are Git Bash + curl + git only (plus `sha1sum`/`awk` shipped
   with Git Bash). `make-demo.sh` re-runs cleanly at any time.
 - Cookie jars (`runtime/demo-work/*.jar`) are browser-equivalent sessions;
