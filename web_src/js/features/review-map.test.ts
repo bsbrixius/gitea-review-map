@@ -359,16 +359,15 @@ describe('review map approve flow', () => {
 });
 
 describe('file tree narrowing', () => {
+  // real Vue tree shape: a flat list where a directory row is followed by its .sub-items sibling
   const treeHTML = `
 <div id="diff-file-tree">
   <div class="diff-file-tree-items">
     <a class="item-file" href="#diff-aaaa">a.ts</a>
-    <div>
-      <div class="item-directory">src</div>
-      <div class="sub-items">
-        <a class="item-file" href="#diff-bbbb">b.ts</a>
-        <a class="item-file" href="#diff-cccc">c.ts</a>
-      </div>
+    <div class="item-directory">src</div>
+    <div class="sub-items">
+      <a class="item-file" href="#diff-bbbb">b.ts</a>
+      <a class="item-file" href="#diff-cccc">c.ts</a>
     </div>
   </div>
 </div>`;

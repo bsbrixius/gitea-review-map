@@ -75,34 +75,32 @@ function enableHorizontalResize(sidebar: HTMLElement, storageKey: string, min: n
 
 // --- file-tree narrowing while a review-map change is selected -----------------
 
-// markTreeItem returns whether the item is fully outside the selected change. It handles
-// file anchors, directory rows (.item-directory + .sub-items) and plain containers such
-// as the Vue app's .diff-file-tree-items wrapper.
-function markTreeItem(el: Element, visible: Set<string>): boolean {
-  if (el.classList.contains('item-file')) {
-    const hash = (el.getAttribute('href') || '').replace('#diff-', '');
-    const excluded = !visible.has(hash);
-    el.classList.toggle('review-map-tree-excluded', excluded);
-    return excluded;
-  }
-  const sub = el.querySelector(':scope > .sub-items');
-  const dirRow = el.querySelector(':scope > .item-directory');
-  if (sub && dirRow) {
-    let allExcluded = sub.children.length > 0;
-    for (const child of sub.children) {
-      if (!markTreeItem(child, visible)) allExcluded = false;
+// The Vue file tree renders FLAT: a directory row (.item-directory) is followed by its
+// .sub-items sibling, and file rows are a.item-file anchors. markTreeList walks one such
+// list and returns whether every row in it is fully outside the selected change.
+function markTreeList(container: Element, visible: Set<string>): boolean {
+  const children = Array.from(container.children);
+  let allExcluded = true, hasRows = false;
+  for (const [i, child] of children.entries()) {
+    if (child.classList.contains('diff-sidebar-resizer')) continue; // our own resize handle
+    hasRows = true;
+    if (child.classList.contains('item-file')) {
+      const hash = (child.getAttribute('href') || '').replace('#diff-', '');
+      const excluded = !visible.has(hash);
+      child.classList.toggle('review-map-tree-excluded', excluded);
+      if (!excluded) allExcluded = false;
+    } else if (child.classList.contains('item-directory')) {
+      const sub = children[i + 1]?.classList.contains('sub-items') ? children[i + 1] : null;
+      const subAllExcluded = sub ? markTreeList(sub, visible) : false;
+      child.classList.toggle('review-map-tree-excluded', subAllExcluded);
+      if (!subAllExcluded) allExcluded = false;
+    } else if (child.classList.contains('sub-items')) {
+       // consumed together with its directory row
+    } else if (!markTreeList(child, visible)) { // unknown wrapper: descend
+      allExcluded = false;
     }
-    dirRow.classList.toggle('review-map-tree-excluded', allExcluded);
-    return allExcluded;
   }
-  let allExcluded = true;
-  let hasTreeItems = false;
-  for (const child of el.children) {
-    if (child.classList.contains('diff-sidebar-resizer')) continue;
-    hasTreeItems = true;
-    if (!markTreeItem(child, visible)) allExcluded = false;
-  }
-  return hasTreeItems && allExcluded;
+  return hasRows && allExcluded;
 }
 
 // applyTreeFilter narrows the file tree to the visible diff boxes (by their #diff-<hash>
@@ -120,7 +118,7 @@ export function applyTreeFilter(tree: HTMLElement, visibleHashes: Set<string> | 
     tree.classList.remove('review-map-tree-dim', 'review-map-tree-hide');
     return;
   }
-  for (const child of tree.children) markTreeItem(child, visibleHashes);
+  markTreeList(tree, visibleHashes);
 }
 
 function initTreeNarrowing(tree: HTMLElement): void {
