@@ -12,6 +12,7 @@ import (
 
 	issues_model "gitea.dev/models/issues"
 	"gitea.dev/models/unittest"
+	"gitea.dev/services/reviewmap"
 	"gitea.dev/modules/setting"
 	"gitea.dev/modules/test"
 	"gitea.dev/tests"
@@ -57,6 +58,33 @@ func TestReviewMapProgressEndpoint(t *testing.T) {
 	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"hash": hash, "reviewed": true})
 	emptyTestSession(t).MakeRequest(t, req, http.StatusSeeOther)
 }
+
+func TestReviewMapProgressEndpointRefIndex(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	urlStr := "/user2/repo1/pulls/3/review-map/progress"
+	sum := sha1.Sum([]byte("y"))
+	hash := hex.EncodeToString(sum[:])
+	refIndex := 1
+
+	session := loginUser(t, "user2")
+	req := NewRequestWithJSON(t, "POST", urlStr, map[string]any{"hash": hash, "refIndex": refIndex, "reviewed": true})
+	session.MakeRequest(t, req, http.StatusNoContent)
+
+	wantKey := reviewmap.RefProgressKey(hash, refIndex)
+	progress := unittest.AssertExistsAndLoadBean(t, &issues_model.ReviewMapProgress{UserID: 2, IssueID: 3})
+	assert.Equal(t, map[string]bool{wantKey: true}, progress.Reviewed)
+
+	// the composite key stays under the model's 64-char cap and unchecks cleanly
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"hash": hash, "refIndex": refIndex, "reviewed": false})
+	session.MakeRequest(t, req, http.StatusNoContent)
+	progress = unittest.AssertExistsAndLoadBean(t, &issues_model.ReviewMapProgress{UserID: 2, IssueID: 3})
+	assert.Empty(t, progress.Reviewed)
+
+	req = NewRequestWithJSON(t, "POST", urlStr, map[string]any{"hash": hash, "refIndex": -1, "reviewed": true})
+	session.MakeRequest(t, req, http.StatusBadRequest)
+}
+
 
 func TestReviewMapProgressEndpointDisabled(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()

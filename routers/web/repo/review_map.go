@@ -18,9 +18,11 @@ import (
 type reviewMapProgressUpdate struct {
 	Hash     string `json:"hash"`
 	Reviewed bool   `json:"reviewed"`
+	RefIndex *int   `json:"refIndex"` // >= 0: approve that one file reference instead of the whole bullet
 }
 
-// UpdateReviewMapProgress marks one bullet of a PR description as reviewed (or not) by the doer
+// UpdateReviewMapProgress marks one bullet (or one of its file references) of a PR description
+// as reviewed (or not) by the doer
 func UpdateReviewMapProgress(ctx *context.Context) {
 	if !setting.ReviewMap.Enabled {
 		ctx.NotFound(nil)
@@ -37,12 +39,20 @@ func UpdateReviewMapProgress(ctx *context.Context) {
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if len(data.Hash) == 0 || len(data.Hash) > 64 {
+	key := data.Hash
+	if data.RefIndex != nil {
+		if *data.RefIndex < 0 {
+			ctx.Resp.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		key = reviewmap.RefProgressKey(data.Hash, *data.RefIndex)
+	}
+	if len(key) == 0 || len(key) > 64 {
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if err := issues_model.SetBulletReviewed(ctx, ctx.Doer.ID, issue.ID, data.Hash, data.Reviewed); err != nil {
+	if err := issues_model.SetBulletReviewed(ctx, ctx.Doer.ID, issue.ID, key, data.Reviewed); err != nil {
 		ctx.ServerError("SetBulletReviewed", err)
 		return
 	}

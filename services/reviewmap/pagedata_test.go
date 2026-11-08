@@ -4,6 +4,7 @@
 package reviewmap
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -165,4 +166,58 @@ func TestMyReviewedHashes(t *testing.T) {
 	}
 	assert.Equal(t, []string{"hash-a", "hash-b"}, myReviewedHashes(progress, 1))
 	assert.Empty(t, myReviewedHashes(progress, 9)) // user without progress
+}
+
+func refProgressKey(hash string, i int) string { return hash + ":i" + strconv.Itoa(i) }
+
+func refApprovalResult() *Result {
+	res := pagedataResult()
+	res.Bullets[0].Refs = []RefStatus{
+		refStatus("a.ts", 1, 2, true),
+		refStatus("b.ts", 1, 2, true),
+		refStatus("bad.ts", 1, 2, false), // invalid refs never count toward completion
+	}
+	return res
+}
+
+func TestBuildPageDataRefApprovalDerivation(t *testing.T) {
+	res := refApprovalResult()
+	b0 := res.Bullets[0].Hash
+	users := map[int64]*user_model.User{
+		1: {ID: 1, Name: "both-refs"},   // approves both valid refs, no bullet hash
+		2: {ID: 2, Name: "one-ref"},     // partial: not done
+		3: {ID: 3, Name: "whole"},       // bullet hash alone
+		4: {ID: 4, Name: "invalid-ref"}, // only the invalid ref's key
+	}
+	progress := map[int64]map[string]bool{
+		1: {refProgressKey(b0, 0): true, refProgressKey(b0, 1): true},
+		2: {refProgressKey(b0, 0): true},
+		3: {b0: true},
+		4: {refProgressKey(b0, 2): true},
+	}
+	pd := BuildPageData(pagedataIssue(), res, nil, progress, users, nil)
+	doneByUser := map[int64]int{}
+	for _, p := range pd.Progress {
+		doneByUser[p.UserID] = p.Done
+	}
+	assert.Equal(t, 1, doneByUser[1], "all valid refs approved completes the bullet")
+	assert.Equal(t, 0, doneByUser[2], "partial ref approval does not complete the bullet")
+	assert.Equal(t, 1, doneByUser[3], "bullet-level hash still completes the bullet")
+	assert.Equal(t, 0, doneByUser[4], "approving an invalid ref completes nothing")
+}
+
+func TestBuildBulletApproval(t *testing.T) {
+	res := refApprovalResult()
+	b0 := res.Bullets[0].Hash
+	keys := map[string]bool{refProgressKey(b0, 0): true} // one of two valid refs
+	approval := BuildBulletApproval(res.Bullets, keys)
+	require.Len(t, approval, len(res.Bullets))
+	assert.Equal(t, ApprovalCount{Approved: 1, Total: 2}, approval[0], "invalid refs are not counted")
+	assert.Equal(t, ApprovalCount{Approved: 0, Total: 0}, approval[1])
+
+	keys[b0] = true // whole bullet: per-ref counters stay as they are
+	approval = BuildBulletApproval(res.Bullets, keys)
+	assert.Equal(t, ApprovalCount{Approved: 1, Total: 2}, approval[0])
+
+	assert.Empty(t, BuildBulletApproval(res.Bullets, nil))
 }

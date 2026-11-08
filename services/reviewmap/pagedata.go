@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 
 	issues_model "gitea.dev/models/issues"
 	user_model "gitea.dev/models/user"
@@ -35,6 +36,18 @@ type UserProgress struct {
 	Total  int    `json:"total"`
 }
 
+// ApprovalCount is one user's per-ref approval state of one bullet: the sidebar's "k/N approved".
+type ApprovalCount struct {
+	Approved int `json:"approved"`
+	Total    int `json:"total"` // valid refs only; invalid refs never block completion
+}
+
+// RefProgressKey is the per-ref progress key: "<bullet hash>:i<ref index>". It reuses the
+// Reviewed map of ReviewMapProgress and stays under its 64-char key cap.
+func RefProgressKey(bulletHash string, refIndex int) string {
+	return fmt.Sprintf("%s:i%d", bulletHash, refIndex)
+}
+
 // PageData drives both the pull-request template (Go fields) and ctx.PageData (json tags).
 type PageData struct {
 	IgnoredReason   string                   `json:"ignoredReason"` // non-empty: render the warning chip only
@@ -48,7 +61,9 @@ type PageData struct {
 	InvalidRefCount int                      `json:"invalidRefCount"`
 	OrphanCount     int                      `json:"orphanCount"`
 	Progress        []UserProgress           `json:"progress"`
-	MyReviewed      []string                 `json:"myReviewed"` // hashes the signed-in user has reviewed; empty when anonymous
+	MyReviewed      []string                 `json:"myReviewed"`     // hashes the signed-in user has reviewed; empty when anonymous
+	MyApprovedRefs  []string                 `json:"myApprovedRefs"` // ref progress keys ("<hash>:i<N>") the signed-in user approved
+	BulletApproval  []ApprovalCount          `json:"bulletApproval"` // per-bullet k/N of the signed-in user, parallel to Bullets
 }
 
 // BuildPageData assembles the page data from a computed result plus the loaded
@@ -71,6 +86,11 @@ func BuildPageData(issue *issues_model.Issue, res *Result, rm *reviewmapmod.Map,
 		done := 0
 		for hash := range hashes {
 			if bulletHashes[hash] { // only hashes of bullets in the result count
+				done++
+			}
+		}
+		for _, b := range res.Bullets { // completing every valid ref also completes the bullet
+			if !hashes[b.Hash] && bulletCompleted(b, hashes) {
 				done++
 			}
 		}
@@ -203,6 +223,8 @@ func PreparePageData(ctx context.Context, doer *user_model.User, issue *issues_m
 	pageData.CanReview = doer != nil
 	if doer != nil {
 		pageData.MyReviewed = myReviewedHashes(progress, doer.ID)
+		pageData.MyApprovedRefs = myApprovedRefKeys(progress, doer.ID)
+		pageData.BulletApproval = BuildBulletApproval(res.Bullets, progress[doer.ID])
 	}
 	return pageData
 }
@@ -217,6 +239,60 @@ func myReviewedHashes(progress map[int64]map[string]bool, doerID int64) []string
 	}
 	slices.Sort(hashes)
 	return hashes
+}
+
+// myApprovedRefKeys collects the approved per-ref progress keys of one user, sorted for stable output. Pure: no I/O.
+func myApprovedRefKeys(progress map[int64]map[string]bool, doerID int64) []string {
+	keys := make([]string, 0, len(progress[doerID]))
+	for key, approved := range progress[doerID] {
+		if approved && isRefProgressKey(key) {
+			keys = append(keys, key)
+		}
+	}
+	slices.Sort(keys)
+	return keys
+}
+
+func isRefProgressKey(key string) bool {
+	hash, rest, ok := strings.Cut(key, ":")
+	return ok && len(hash) == 40 && strings.HasPrefix(rest, "i")
+}
+
+// bulletCompleted reports whether every valid ref of the bullet is approved in keys, or the
+// bullet hash itself is. Bullets without valid refs are only completable via their hash.
+func bulletCompleted(b BulletStatus, keys map[string]bool) bool {
+	if keys[b.Hash] {
+		return true
+	}
+	total, approved := 0, 0
+	for i, ref := range b.Refs {
+		if ref.Valid {
+			total++
+			if keys[RefProgressKey(b.Hash, i)] {
+				approved++
+			}
+		}
+	}
+	return total > 0 && approved == total
+}
+
+// BuildBulletApproval computes the signed-in user's per-bullet "k/N approved" over valid refs. Pure: no I/O.
+func BuildBulletApproval(bullets []BulletStatus, keys map[string]bool) []ApprovalCount {
+	if keys == nil {
+		return nil
+	}
+	approval := make([]ApprovalCount, len(bullets))
+	for bi, b := range bullets {
+		for i, ref := range b.Refs {
+			if ref.Valid {
+				approval[bi].Total++
+				if keys[RefProgressKey(b.Hash, i)] {
+					approval[bi].Approved++
+				}
+			}
+		}
+	}
+	return approval
 }
 
 func firstValidRef(refs []RefStatus) *RefStatus {
