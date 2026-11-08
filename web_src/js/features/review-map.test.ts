@@ -1,4 +1,4 @@
-import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage} from './review-map.ts';
+import {applyBulletFilter, clearBulletFilter, initReviewMapPanel, isFilesPage, setActiveBullet} from './review-map.ts';
 import {POST} from '../modules/fetch.ts';
 
 vi.mock('../modules/fetch.ts', () => ({
@@ -88,11 +88,11 @@ const panelHTML = `
 </div>`;
 
 const bulletA = {
-  Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false,
+  Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
   Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 3, EndLine: 4, Valid: true}],
 };
 const bulletB = {
-  Index: 1, Hash: 'hash-b', Text: 'Fix the bug', Orphan: false,
+  Index: 1, Hash: 'hash-b', Text: 'Fix the bug', Orphan: false, AddedLines: 2, RemovedLines: 1,
   Refs: [{File: 'docs/other.md', NameHash: 'bbbb', StartLine: 1, EndLine: 1, Valid: true}],
 };
 
@@ -203,7 +203,7 @@ describe('review-map', {concurrent: false}, () => {
 
     test('returns false and leaves the diff untouched when no file box matches', () => {
       document.body.innerHTML = diffHTML;
-      const missing = {Index: 2, Hash: 'hash-c', Text: 'Elsewhere', Orphan: true, Refs: [{File: 'missing.txt', NameHash: 'cccc', StartLine: 1, EndLine: 2, Valid: true}]};
+      const missing = {Index: 2, Hash: 'hash-c', Text: 'Elsewhere', Orphan: true, AddedLines: 2, RemovedLines: 1, Refs: [{File: 'missing.txt', NameHash: 'cccc', StartLine: 1, EndLine: 2, Valid: true}]};
       expect(applyBulletFilter(missing, document)).toBeFalsy();
       for (const el of document.querySelectorAll('#diff-file-boxes .diff-file-box, #diff-file-boxes tr')) {
         expect(isHidden(el)).toBeFalsy();
@@ -279,7 +279,7 @@ describe('review-map', {concurrent: false}, () => {
     test('files page: a bullet whose refs match no file box shows the fallback and scrolls to the first ref anchor', () => {
       document.body.innerHTML = panelHTML + diffHTML;
       const missing = {
-        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false,
+        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
         Refs: [{File: 'missing.txt', NameHash: 'bbbb', StartLine: 1, EndLine: 2, Valid: true}],
       };
       window.config.pageData.reviewMap = {...pageData, bullets: [missing]};
@@ -295,7 +295,7 @@ describe('review-map', {concurrent: false}, () => {
     test('files page: a matched file box whose rows all fall outside the range still filters successfully', () => {
       document.body.innerHTML = panelHTML + diffHTML;
       const retargeted = {
-        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false,
+        Index: 0, Hash: 'hash-a', Text: 'Add the feature', Orphan: false, AddedLines: 2, RemovedLines: 1,
         Refs: [{File: 'src/a.txt', NameHash: 'aaaa', StartLine: 100, EndLine: 200, Valid: true}],
       };
       window.config.pageData.reviewMap = {...pageData, bullets: [retargeted]};
@@ -313,5 +313,27 @@ describe('review-map', {concurrent: false}, () => {
       initReviewMapPanel();
       expect(isHidden(document.querySelector('#diff-aaaa')!)).toBeFalsy();
     });
+  });
+});
+
+describe('review map sidebar activation', () => {
+  test('setActiveBullet marks only the applied bullet and clears with null', () => {
+    document.body.innerHTML = panelHTML;
+    const panel = document.querySelector('#review-map-panel') as HTMLElement;
+    setActiveBullet(panel, 1);
+    expect(document.querySelector('[data-bullet-index="0"]')!.classList.contains('review-map-active')).toBeFalsy();
+    expect(document.querySelector('[data-bullet-index="1"]')!.classList.contains('review-map-active')).toBeTruthy();
+    setActiveBullet(panel, null);
+    expect(panel.querySelector('.review-map-active')).toBeFalsy();
+  });
+
+  test('files page: applying a bullet activates its sidebar card and show-all clears it', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    (document.querySelector('[data-bullet-index="1"] .review-map-bullet-text') as HTMLElement).click();
+    expect(document.querySelector('[data-bullet-index="1"]')!.classList.contains('review-map-active')).toBeTruthy();
+    (document.querySelector('#review-map-show-all') as HTMLElement).click();
+    expect(document.querySelector('.review-map-active')).toBeFalsy();
   });
 });

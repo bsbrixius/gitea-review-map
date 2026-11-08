@@ -1929,6 +1929,7 @@
   "review_map.filter_unavailable": "filter unavailable for this diff",
   "review_map.reviewed_label": "Mark bullet as reviewed",
   "review_map.progress_label": "%d/%d",
+  "review_map.bullet_files": "%d file(s)",
   "repo.pull.deleted_branch": "(deleted):%s",
   "repo.pull.agit_documentation": "Review documentation about AGit",
   "repo.comments.edit.already_changed": "Unable to save changes to the comment. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes",

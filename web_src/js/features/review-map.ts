@@ -16,6 +16,8 @@ export type ReviewMapBullet = {
   Text: string,
   Orphan: boolean,
   Refs: ReviewMapRef[],
+  AddedLines: number,
+  RemovedLines: number,
 };
 
 export type ReviewMapPageData = {
@@ -110,6 +112,13 @@ export function applyBulletFilter(bullet: {Refs: ReviewMapRef[]}, root: Document
   return true;
 }
 
+// setActiveBullet marks the sidebar card of the applied bullet; pass null to clear.
+export function setActiveBullet(panel: HTMLElement, index: number | null): void {
+  for (const bullet of panel.querySelectorAll('.review-map-bullet')) {
+    bullet.classList.toggle('review-map-active', bullet.getAttribute('data-bullet-index') === String(index));
+  }
+}
+
 export function initReviewMapPanel() {
   const panel = document.querySelector<HTMLElement>('#review-map-panel');
   if (!panel) return;
@@ -141,7 +150,10 @@ export function initReviewMapPanel() {
     if (!bullet) return;
     if (applyBulletFilter(bullet, document)) {
       showElem(showAllButton);
+      setActiveBullet(panel, index);
+      document.querySelector('tr.review-map-line-highlight')?.scrollIntoView({block: 'center'});
     } else {
+      setActiveBullet(panel, null);
       showElem(fallbackBox);
       const nameHash = bullet.Refs[0]?.NameHash;
       if (nameHash) document.querySelector(`#diff-${nameHash}`)?.scrollIntoView();
@@ -157,6 +169,7 @@ export function initReviewMapPanel() {
   showAllButton.addEventListener('click', () => {
     clearBulletFilter(document);
     hideElem(showAllButton);
+    setActiveBullet(panel, null);
   });
 
   const storedIndex = sessionStorage.getItem(filterStorageKey);

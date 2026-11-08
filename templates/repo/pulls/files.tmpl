@@ -4,8 +4,15 @@
 	<div class="ui container fluid padded">
 		{{template "repo/issue/view_title" .}}
 		{{template "repo/pulls/tab_menu" .}}
-		{{template "repo/issue/view_content/review_map".}}
-		{{template "repo/diff/box" .}}
+		{{if and .ReviewMapData (not .ReviewMapData.IgnoredReason)}}
+			<div class="review-map-layout">
+				{{template "repo/issue/view_content/review_map_sidebar".}}
+				<div class="review-map-diff-column">{{template "repo/diff/box" .}}</div>
+			</div>
+		{{else}}
+			{{template "repo/issue/view_content/review_map".}}
+			{{template "repo/diff/box" .}}
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

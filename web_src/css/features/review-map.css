@@ -29,7 +29,126 @@
   color: var(--color-text-light-1);
 }
 
-/* added by JS (review map module) to the diff table rows implementing a bullet */
-.review-map-line-highlight > :first-child {
+/* files page: sidebar + diff two-column layout (falls back to stacked on mobile) */
+.review-map-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.review-map-diff-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.review-map-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 48px;
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background: var(--color-box-body);
+}
+
+.review-map-sidebar .review-map-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-map-sidebar .review-map-bullets {
+  counter-reset: review-map-bullet;
+}
+
+.review-map-sidebar .review-map-bullet {
+  counter-increment: review-map-bullet;
+  padding: 8px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.review-map-sidebar .review-map-bullet-no::before {
+  content: counter(review-map-bullet);
+}
+
+.review-map-sidebar .review-map-bullet:hover {
+  background: var(--color-hover);
+}
+
+.review-map-sidebar .review-map-bullet.review-map-active {
+  border-color: var(--color-primary);
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.review-map-sidebar .review-map-bullet-no {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  background: var(--color-secondary);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.review-map-sidebar .review-map-bullet.review-map-active .review-map-bullet-no {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+}
+
+.review-map-sidebar .review-map-bullet-stats {
+  display: flex;
+  gap: 6px;
+}
+
+.review-map-sidebar .review-map-refs {
+  gap: 2px;
+}
+
+.review-map-sidebar .review-map-refs .review-map-ref,
+.review-map-sidebar .review-map-refs .review-map-comment {
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-map-sidebar .review-map-sidebar-footer details {
+  padding: 4px 0;
+}
+
+@media (max-width: 767px) {
+  .review-map-layout {
+    flex-direction: column;
+  }
+
+  .review-map-sidebar {
+    position: static;
+    width: auto;
+    max-height: none;
+  }
+}
+
+/* GitHub-style full-row highlight on the lines implementing the active bullet */
+.review-map-line-highlight > td {
+  background: color-mix(in srgb, var(--color-yellow) 22%, transparent);
+}
+
+.review-map-line-highlight > td.lines-num {
+  background: color-mix(in srgb, var(--color-yellow) 34%, transparent);
+}
+
+.review-map-line-highlight > td:first-child {
   box-shadow: inset 2px 0 0 var(--color-primary);
 }
