@@ -521,3 +521,17 @@ describe('card state spine', () => {
     expect(card.classList.contains('review-map-approved')).toBeFalsy();
   });
 });
+
+describe('tab card controls do not navigate', () => {
+  test('clicking the approve chip on a non-files page stays put', () => {
+    document.body.innerHTML = panelHTML;
+    const spyAssign = vi.spyOn(window.location, 'assign').mockImplementation(() => {});
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    (document.querySelector('.review-map-approve-chip') as HTMLElement).click();
+    (document.querySelector('.review-map-flag-btn') as HTMLElement).click();
+    expect(spyAssign).not.toHaveBeenCalled();
+    expect(sessionStorage.getItem('review-map-filter')).toBeNull();
+    spyAssign.mockRestore();
+  });
+});

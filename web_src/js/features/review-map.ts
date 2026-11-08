@@ -227,10 +227,13 @@ export function initReviewMapPanel() {
     POST(data.toggleUrl, {data: {hash: bullet.getAttribute('data-bullet-hash'), reviewed: checkbox.checked}});
   });
 
+  // interactive controls inside a card must not trigger the card's navigation/filter click
+  const cardControls = '.review-map-check, .review-map-ref-check, .review-map-approve-chip, .review-map-flag-btn, .review-map-comment';
+
   if (!isFilesPage()) {
-    // conversation page: remember the clicked bullet and let the files page apply the filter
+    // conversation page and Review Map tab: remember the clicked bullet and let the files page apply the filter
     addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
-      if ((e.target as HTMLElement).closest('.review-map-check, .review-map-comment')) return;
+      if ((e.target as HTMLElement).closest(cardControls)) return;
       e.preventDefault();
       sessionStorage.setItem(filterStorageKey, bullet.getAttribute('data-bullet-index')!);
       window.location.assign(`${data.issueLink}/files`);
@@ -346,7 +349,7 @@ export function initReviewMapPanel() {
   };
 
   addDelegatedEventListener<HTMLElement, MouseEvent>(panel, 'click', '.review-map-bullet', (bullet, e) => {
-    if ((e.target as HTMLElement).closest('.review-map-check, .review-map-ref-check, .review-map-approve-chip, .review-map-comment')) return;
+    if ((e.target as HTMLElement).closest(cardControls)) return;
     e.preventDefault();
     applyBulletByIndex(parseInt(bullet.getAttribute('data-bullet-index')!, 10));
   });
