@@ -124,16 +124,20 @@ export function applyTreeFilter(tree: HTMLElement, visibleHashes: Set<string> | 
 }
 
 function initTreeNarrowing(tree: HTMLElement): void {
-  const applyFromDom = () => {
-    const boxes = Array.from(document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)'));
-    const hashes = new Set(boxes.map((box) => (box.id || '').replace('diff-', '')));
-    applyTreeFilter(tree, boxes.length ? hashes : null);
-  };
-  document.addEventListener('review-map:filter-changed', applyFromDom);
   // the Vue tree re-renders on navigation; keep an active filter applied
+  let applyFromDom: () => void;
   const observer = new MutationObserver(() => {
     if (tree.classList.contains('review-map-tree-hide') || tree.classList.contains('review-map-tree-dim')) applyFromDom();
   });
+  applyFromDom = () => {
+    const boxes = Array.from(document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)'));
+    const hashes = new Set(boxes.map((box) => (box.id || '').replace('diff-', '')));
+    // disconnect while marking: our own class changes must not re-trigger the observer
+    observer.disconnect();
+    applyTreeFilter(tree, boxes.length ? hashes : null);
+    observer.observe(tree, {childList: true, subtree: true});
+  };
+  document.addEventListener('review-map:filter-changed', applyFromDom);
   observer.observe(tree, {childList: true, subtree: true});
 
   const toggle = document.querySelector<HTMLInputElement>('#review-map-tree-toggle');
