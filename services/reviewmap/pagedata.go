@@ -225,6 +225,9 @@ func PreparePageData(ctx context.Context, doer *user_model.User, issue *issues_m
 		pageData.MyReviewed = myReviewedHashes(progress, doer.ID)
 		pageData.MyApprovedRefs = myApprovedRefKeys(progress, doer.ID)
 		pageData.BulletApproval = BuildBulletApproval(res.Bullets, progress[doer.ID])
+	} else {
+		// templates index this slice for every bullet: it must never be nil (out-of-range errors)
+		pageData.BulletApproval = make([]ApprovalCount, len(res.Bullets))
 	}
 	return pageData
 }
