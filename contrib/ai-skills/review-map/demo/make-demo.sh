@@ -13,11 +13,12 @@
 #   DEMO_DIR         work directory for the clone and generated files
 #                    (default <script dir>/runtime/demo-work)
 #   DEMO_OWNER       user that owns the demo repo     (default demo)
-#   DEMO_PASS        password of DEMO_OWNER, used for a browser-like cookie
-#                    login that drives the progress endpoint and HTML checks
-#                    (default DemoAdmin1!)
+#   DEMO_PASS        password of DEMO_OWNER (required): used for a browser-like
+#                    cookie login that drives the progress endpoint and HTML
+#                    checks. Never hardcoded -- export your own value.
 #   REVIEWER2_USER   second reviewer account          (default reviewer2)
-#   REVIEWER2_PASS   its password                     (default DemoReview2!)
+#   REVIEWER2_PASS   its password (required; created by this script, or must
+#                    match the existing account's password on re-runs)
 #
 # The PR body is pr-body.md (bullets only); this script appends the
 # ```review-map block with line ranges computed from the diff it just created.
@@ -28,9 +29,9 @@ GITEA_URL="${GITEA_URL:-http://127.0.0.1:3000}"
 GITEA_TOKEN="${GITEA_TOKEN:?GITEA_TOKEN (admin token, scopes all) must be set}"
 DEMO_DIR="${DEMO_DIR:-$SCRIPT_DIR/runtime/demo-work}"
 DEMO_OWNER="${DEMO_OWNER:-demo}"
-DEMO_PASS="${DEMO_PASS:-DemoAdmin1!}"
+: "${DEMO_PASS:?DEMO_PASS (password of $DEMO_OWNER) must be set in the environment}"
 REVIEWER2_USER="${REVIEWER2_USER:-reviewer2}"
-REVIEWER2_PASS="${REVIEWER2_PASS:-DemoReview2!}"
+: "${REVIEWER2_PASS:?REVIEWER2_PASS (password of $REVIEWER2_USER) must be set in the environment}"
 
 REPO=reviewmap-demo
 BASELINE_LINES=500          # lines of each source file on main
@@ -261,7 +262,7 @@ code=$(curl -sS -o /tmp/mkdemo-user.json -w '%{http_code}' -X POST \
   "$GITEA_URL/api/v1/admin/users")
 case "$code" in
   201) note "created $REVIEWER2_USER" ;;
-  422) note "$REVIEWER2_USER already exists" ;;
+  422) note "$REVIEWER2_USER already exists (REVIEWER2_PASS must match its password or the login below fails)" ;;
   *) die "creating $REVIEWER2_USER returned $code: $(cat /tmp/mkdemo-user.json)" ;;
 esac
 

@@ -8,7 +8,7 @@
 # Same environment variables as make-demo.sh:
 #   GITEA_URL (default http://127.0.0.1:3000), GITEA_TOKEN (required),
 #   DEMO_DIR (default <script dir>/runtime/demo-work),
-#   DEMO_OWNER (default demo), DEMO_PASS (default DemoAdmin1!)
+#   DEMO_OWNER (default demo), DEMO_PASS (required, never hardcoded)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -16,7 +16,7 @@ GITEA_URL="${GITEA_URL:-http://127.0.0.1:3000}"
 GITEA_TOKEN="${GITEA_TOKEN:?GITEA_TOKEN (admin token, scopes all) must be set}"
 DEMO_DIR="${DEMO_DIR:-$SCRIPT_DIR/runtime/demo-work}"
 DEMO_OWNER="${DEMO_OWNER:-demo}"
-DEMO_PASS="${DEMO_PASS:-DemoAdmin1!}"
+: "${DEMO_PASS:?DEMO_PASS (password of $DEMO_OWNER) must be set in the environment}"
 
 REPO=reviewmap-demo
 FILE=src/store/slices/AdvancedQuery.ts   # mapped by bullet 1 of the feature PR
@@ -35,6 +35,7 @@ PR=$(cat "$DEMO_DIR/pr1.index")
 note "feature PR is #$PR"
 
 say "2. Push a commit that shifts lines (+30 at the top of $FILE)"
+# repeatable: every run pushes another +30-line commit (shifts grow); make-demo.sh resets the PR
 cd "$DEMO_DIR/work"
 PUSH_URL="${GITEA_URL/http:\/\//http:\/\/$DEMO_OWNER:$GITEA_TOKEN@}/$DEMO_OWNER/$REPO.git"
 git fetch -q "$PUSH_URL" feature/advanced-query
