@@ -321,6 +321,7 @@ export function initReviewMapPanel() {
       setStripsOpen(index);
       sessionStorage.setItem(filterStorageKey, String(index)); // reloads keep the active filter
       setMapParam(index); // the URL mirrors the selection so the view is shareable
+      document.querySelector('#diff-file-boxes')?.setAttribute('data-review-map-active', String(index));
       const visibleCount = document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)').length;
       showBulletStats(bullet, visibleCount, totalBoxCount);
       if (approveChangeButton) {
@@ -418,6 +419,7 @@ export function initReviewMapPanel() {
     setActiveBullet(panel, null);
     restoreStats();
     if (approveChangeButton) approveChangeButton.setAttribute('hidden', 'hidden');
+    document.querySelector('#diff-file-boxes')?.removeAttribute('data-review-map-active');
     sessionStorage.removeItem(filterStorageKey);
     setMapParam(null);
     notifyFilterChanged();

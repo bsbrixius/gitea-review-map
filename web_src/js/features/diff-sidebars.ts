@@ -128,11 +128,15 @@ function initTreeNarrowing(tree: HTMLElement): void {
     if (tree.classList.contains('review-map-tree-hide') || tree.classList.contains('review-map-tree-dim')) applyFromDom();
   });
   applyFromDom = () => {
+    // the active change is tracked on the boxes container; "all boxes visible" is NOT
+    // "no filter" (that is exactly the show-all state)
+    const container = document.querySelector('#diff-file-boxes');
+    const activeIndex = container?.getAttribute('data-review-map-active');
     const boxes = Array.from(document.querySelectorAll('#diff-file-boxes .diff-file-box:not(.tw-hidden)'));
-    const hashes = new Set(boxes.map((box) => (box.id || '').replace('diff-', '')));
+    const hashes = activeIndex === null ? null : new Set(boxes.map((box) => (box.id || '').replace('diff-', '')));
     // disconnect while marking: our own class changes must not re-trigger the observer
     observer.disconnect();
-    applyTreeFilter(tree, boxes.length ? hashes : null);
+    applyTreeFilter(tree, hashes);
     observer.observe(tree, {childList: true, subtree: true});
   };
   document.addEventListener('review-map:filter-changed', applyFromDom);
