@@ -221,3 +221,19 @@ func TestBuildBulletApproval(t *testing.T) {
 
 	assert.Empty(t, BuildBulletApproval(res.Bullets, nil))
 }
+
+func TestBuildPageDataFlagCounts(t *testing.T) {
+	res := pagedataResult()
+	b0 := res.Bullets[0].Hash
+	users := map[int64]*user_model.User{1: {ID: 1, Name: "a"}, 2: {ID: 2, Name: "b"}}
+	progress := map[int64]map[string]bool{
+		1: {FlagProgressKey(b0): true, b0: true},
+		2: {FlagProgressKey(b0): true},
+	}
+	pd := BuildPageData(pagedataIssue(), res, nil, progress, users, nil)
+	assert.Equal(t, []int{2, 0, 0}, pd.BulletFlags)
+	assert.Equal(t, 2, pd.FlaggedCount)
+	assert.Equal(t, []string{b0}, myFlaggedHashes(res.Bullets, progress[1]))
+	// a flag never leaks into MyReviewed-style bullet hashes
+	assert.NotContains(t, myReviewedHashes(progress, 1), FlagProgressKey(b0))
+}

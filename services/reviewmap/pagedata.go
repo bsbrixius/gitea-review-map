@@ -48,6 +48,12 @@ func RefProgressKey(bulletHash string, refIndex int) string {
 	return fmt.Sprintf("%s:i%d", bulletHash, refIndex)
 }
 
+// FlagProgressKey is the per-reviewer discussion-flag key for a whole bullet: "<hash>:flag".
+// Like ref keys it lives in the Reviewed map without any schema change.
+func FlagProgressKey(bulletHash string) string {
+	return bulletHash + ":flag"
+}
+
 // PageData drives both the pull-request template (Go fields) and ctx.PageData (json tags).
 type PageData struct {
 	IgnoredReason   string                   `json:"ignoredReason"` // non-empty: render the warning chip only
@@ -64,6 +70,9 @@ type PageData struct {
 	MyReviewed      []string                 `json:"myReviewed"`     // hashes the signed-in user has reviewed; empty when anonymous
 	MyApprovedRefs  []string                 `json:"myApprovedRefs"` // ref progress keys ("<hash>:i<N>") the signed-in user approved
 	BulletApproval  []ApprovalCount          `json:"bulletApproval"` // per-bullet k/N of the signed-in user, parallel to Bullets
+	MyFlagged       []string                 `json:"myFlagged"`      // bullet hashes the signed-in user flagged for discussion
+	BulletFlags     []int                    `json:"bulletFlags"`    // per-bullet flag count across ALL reviewers, parallel to Bullets
+	FlaggedCount    int                      `json:"flaggedCount"`   // total flags across reviewers and bullets
 }
 
 // BuildPageData assembles the page data from a computed result plus the loaded
@@ -100,6 +109,18 @@ func BuildPageData(issue *issues_model.Issue, res *Result, rm *reviewmapmod.Map,
 		return cmp.Or(cmp.Compare(b.Done, a.Done), cmp.Compare(a.Name, b.Name))
 	})
 
+	// discussion flags: counted per bullet across ALL reviewers (everyone sees ⚑ N)
+	bulletFlags := make([]int, len(res.Bullets))
+	flaggedCount := 0
+	for _, hashes := range progress {
+		for bi, b := range res.Bullets {
+			if hashes[FlagProgressKey(b.Hash)] {
+				bulletFlags[bi]++
+				flaggedCount++
+			}
+		}
+	}
+
 	var ignoreGlobs []string
 	if rm != nil {
 		ignoreGlobs = rm.Ignore
@@ -114,6 +135,8 @@ func BuildPageData(issue *issues_model.Issue, res *Result, rm *reviewmapmod.Map,
 		InvalidRefCount: res.InvalidRefCount,
 		OrphanCount:     res.OrphanCount,
 		Progress:        progressList,
+		BulletFlags:     bulletFlags,
+		FlaggedCount:    flaggedCount,
 	}
 }
 
@@ -225,18 +248,31 @@ func PreparePageData(ctx context.Context, doer *user_model.User, issue *issues_m
 		pageData.MyReviewed = myReviewedHashes(progress, doer.ID)
 		pageData.MyApprovedRefs = myApprovedRefKeys(progress, doer.ID)
 		pageData.BulletApproval = BuildBulletApproval(res.Bullets, progress[doer.ID])
+		pageData.MyFlagged = myFlaggedHashes(res.Bullets, progress[doer.ID])
 	} else {
 		// templates index this slice for every bullet: it must never be nil (out-of-range errors)
 		pageData.BulletApproval = make([]ApprovalCount, len(res.Bullets))
+		pageData.BulletFlags = make([]int, len(res.Bullets))
 	}
 	return pageData
+}
+
+// myFlaggedHashes collects the bullet hashes the given user flagged for discussion.
+func myFlaggedHashes(bullets []BulletStatus, keys map[string]bool) []string {
+	var flagged []string
+	for _, b := range bullets {
+		if keys[FlagProgressKey(b.Hash)] {
+			flagged = append(flagged, b.Hash)
+		}
+	}
+	return flagged
 }
 
 // myReviewedHashes collects the reviewed bullet hashes of one user, sorted for stable output. Pure: no I/O.
 func myReviewedHashes(progress map[int64]map[string]bool, doerID int64) []string {
 	hashes := make([]string, 0, len(progress[doerID]))
 	for hash, reviewed := range progress[doerID] {
-		if reviewed {
+		if reviewed && !strings.HasSuffix(hash, ":flag") {
 			hashes = append(hashes, hash)
 		}
 	}

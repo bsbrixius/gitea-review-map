@@ -74,6 +74,9 @@ const panelHTML = `
       <input type="checkbox" class="review-map-check">
       <div>
         <span class="review-map-bullet-text">Add the feature</span>
+        <input type="checkbox" class="review-map-ref-check" data-ref-index="0">
+        <button type="button" class="review-map-approve-chip" data-approved="0" data-total="1"><span class="review-map-chip-count">0/1</span></button>
+        <button type="button" class="review-map-flag-btn">flag</button>
         <a class="review-map-ref" href="/owner/repo/pulls/1/files" data-ref-file="src/a.txt" data-ref-start="3" data-ref-end="4" data-name-hash="aaaa">src/a.txt:3-4</a>
         <a class="review-map-comment" href="/owner/repo/pulls/1/files#issuecomment-1">#</a>
       </div>
@@ -81,6 +84,7 @@ const panelHTML = `
     <div class="review-map-bullet" data-bullet-index="1" data-bullet-hash="hash-b">
       <div>
         <span class="review-map-bullet-text">Fix the bug</span>
+        <button type="button" class="review-map-flag-btn">flag</button>
         <a class="review-map-ref" href="/owner/repo/pulls/1/files" data-ref-file="docs/other.md" data-ref-start="1" data-ref-end="1" data-name-hash="bbbb">docs/other.md:1-1</a>
       </div>
     </div>
@@ -108,6 +112,9 @@ const pageData = {
   myReviewed: [],
   myApprovedRefs: [],
   bulletApproval: [{approved: 0, total: 1}, {approved: 0, total: 1}],
+  myFlagged: [],
+  bulletFlags: [0, 0],
+  flaggedCount: 0,
   bullets: [bulletA, bulletB],
   commentLinks: {},
   coverage: {TotalChanged: 6, MappedChanged: 5, UnmappedFiles: ['docs/other.md']},
@@ -469,5 +476,32 @@ describe('?map= deep link', () => {
     (document.querySelector('#review-map-show-all') as HTMLElement).click();
     expect(window.location.search).not.toContain('map=');
     window.history.replaceState(null, '', '/');
+  });
+});
+
+describe('discussion flags', () => {
+  test('nextUnapprovedBulletIndex never walks onto a flagged change', () => {
+    const approval = [
+      {approved: 2, total: 2},
+      {approved: 0, total: 3}, // flagged
+      {approved: 0, total: 4},
+    ];
+    expect(nextUnapprovedBulletIndex(approval, 0, new Set([1]))).toBe(2);
+    expect(nextUnapprovedBulletIndex(approval, 2, new Set([1]))).toBe(-1);
+  });
+
+  test('flagging posts the flag key, clears approvals and marks the card', () => {
+    document.body.innerHTML = panelHTML + diffHTML;
+    window.config.pageData.reviewMap = pageData;
+    initReviewMapPanel();
+    const card = document.querySelector('[data-bullet-index="0"]') as HTMLElement;
+    const flagBtn = card.querySelector('.review-map-flag-btn') as HTMLElement;
+    (card.querySelector('.review-map-ref-check') as HTMLInputElement).checked = true;
+    flagBtn.click();
+    expect(flagBtn.classList.contains('review-map-flagged')).toBeTruthy();
+    expect(card.classList.contains('review-map-is-flagged')).toBeTruthy();
+    expect((card.querySelector('.review-map-ref-check') as HTMLInputElement).checked).toBeFalsy();
+    expect(POST).toHaveBeenCalledWith('/owner/repo/pulls/1/review-map/progress', {data: {hash: 'hash-a', flag: true, reviewed: true}});
+    expect(POST).toHaveBeenCalledWith('/owner/repo/pulls/1/review-map/progress', {data: {hash: 'hash-a', refIndex: 0, reviewed: false}});
   });
 });

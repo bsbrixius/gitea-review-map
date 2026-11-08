@@ -316,3 +316,18 @@ tr.review-map-strip > td {
   display: inline-flex;
   cursor: help;
 }
+
+/* discussion flag: opposite vote of approve, visible to every reviewer */
+.review-map-flag-btn {
+  border: none;
+  cursor: pointer;
+  padding: 1px 7px;
+}
+
+.review-map-flag-btn.review-map-flagged {
+  background: var(--color-red) !important;
+}
+
+.review-map-bullet.review-map-is-flagged {
+  border-color: var(--color-red);
+}

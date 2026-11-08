@@ -31,6 +31,9 @@ export type ReviewMapPageData = {
   myReviewed: string[],
   myApprovedRefs: string[] | null,
   bulletApproval: {approved: number, total: number}[] | null,
+  myFlagged: string[] | null,
+  bulletFlags: number[] | null,
+  flaggedCount: number,
   bullets: ReviewMapBullet[],
   commentLinks: Record<string, {id: number, url: string}[]>,
   coverage: {TotalChanged: number, MappedChanged: number, UnmappedFiles: string[]},
@@ -205,9 +208,9 @@ export function setActiveBullet(panel: HTMLElement, index: number | null): void 
 
 // nextUnapprovedBulletIndex returns the first bullet (by panel order) whose valid refs are not
 // all approved yet, skipping the given index; -1 when every bullet is done.
-export function nextUnapprovedBulletIndex(approval: {approved: number, total: number}[], skipIndex: number): number {
+export function nextUnapprovedBulletIndex(approval: {approved: number, total: number}[], skipIndex: number, flagged?: Set<number>): number {
   for (const [i, a] of approval.entries()) {
-    if (i !== skipIndex && a.total > 0 && a.approved < a.total) return i;
+    if (i !== skipIndex && !flagged?.has(i) && a.total > 0 && a.approved < a.total) return i;
   }
   return -1;
 }
@@ -368,9 +371,14 @@ export function initReviewMapPanel() {
       return {approved: bullet.querySelectorAll('.review-map-ref-check:checked').length, total: checks.length};
     });
 
+  // the reviewer's own flags (server-rendered flag buttons carry the state)
+  const flaggedIndexes = (): Set<number> => new Set(
+    Array.from(panel.querySelectorAll<HTMLElement>('.review-map-flag-btn.review-map-flagged'), (btn) => parseInt(btn.closest('.review-map-bullet')!.getAttribute('data-bullet-index')!, 10)),
+  );
+
   const maybeAdvance = (bullet: HTMLElement) => {
     const index = parseInt(bullet.getAttribute('data-bullet-index')!, 10);
-    const next = nextUnapprovedBulletIndex(panelApproval(), index);
+    const next = nextUnapprovedBulletIndex(panelApproval(), index, flaggedIndexes());
     if (next >= 0) window.setTimeout(() => applyBulletByIndex(next), 600); // bullet complete: walk to the next one
   };
 
@@ -383,9 +391,15 @@ export function initReviewMapPanel() {
     maybeAdvance(bullet);
   });
 
-  // approve (or clear) every valid file reference of one change card
+  // approve (or clear) every valid file reference of one change card; approving a
+  // flagged change clears the flag first (they are opposite votes)
   const approveAllRefs = (bullet: HTMLElement, target: boolean) => {
     const hash = bullet.getAttribute('data-bullet-hash')!;
+    const flagBtn = bullet.querySelector<HTMLElement>('.review-map-flag-btn');
+    if (target && flagBtn?.classList.contains('review-map-flagged')) {
+      flagBtn.classList.remove('review-map-flagged');
+      POST(data.toggleUrl, {data: {hash, flag: true, reviewed: false}});
+    }
     for (const check of Array.from(bullet.querySelectorAll<HTMLInputElement>('.review-map-ref-check'))) {
       if (check.checked === target) continue;
       check.checked = target;
@@ -410,6 +424,25 @@ export function initReviewMapPanel() {
     approveAllRefs(active, target);
     approveChangeButton.classList.toggle('review-map-change-done', target);
     if (target) maybeAdvance(active);
+  });
+
+  // flagging clears approvals (opposite vote), stops auto-advance past this change, and
+  // opens the inline comment form at the change's first mapped line for the discussion
+  addDelegatedEventListener<HTMLButtonElement, MouseEvent>(panel, 'click', '.review-map-flag-btn', (btn, e) => {
+    e.preventDefault();
+    const bullet = btn.closest('.review-map-bullet') as HTMLElement;
+    const hash = bullet.getAttribute('data-bullet-hash')!;
+    const flagging = !btn.classList.contains('review-map-flagged');
+    btn.classList.toggle('review-map-flagged', flagging);
+    bullet.classList.toggle('review-map-is-flagged', flagging);
+    POST(data.toggleUrl, {data: {hash, flag: true, reviewed: flagging}});
+    if (flagging) {
+      approveAllRefs(bullet, false);
+      const index = parseInt(bullet.getAttribute('data-bullet-index')!, 10);
+      const firstRef = data.bullets.find((it) => it.Index === index)?.Refs.find((ref) => ref.Valid);
+      const anchor = firstRef ? document.querySelector(`#diff-${firstRef.NameHash} .add-code-comment[data-side="right"][data-idx="${CSS.escape(String(firstRef.StartLine))}"]`) : null;
+      (anchor as HTMLElement | null)?.click(); // no anchor on this page: nothing to open
+    }
   });
 
   showAllButton.addEventListener('click', () => {

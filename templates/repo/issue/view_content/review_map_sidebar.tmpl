@@ -6,7 +6,11 @@
 			<div class="tw-font-semibold">{{ctx.Locale.Tr "review_map.panel_title"}}</div>
 			{{if and (eq .ReviewMapData.InvalidRefCount 0) (eq .ReviewMapData.OrphanCount 0)}}
 				<span class="ui small label tw-bg-green tw-text-white">{{svg "octicon-check" 12}} {{ctx.Locale.Tr "review_map.verified"}}</span>
-			{{else}}
+			{{end}}
+			{{if gt .ReviewMapData.FlaggedCount 0}}
+				<span class="ui small label tw-bg-red tw-text-white" title="{{ctx.Locale.Tr "review_map.flagged_tooltip"}}">{{svg "octicon-flag" 12}} {{ctx.Locale.Tr "review_map.flagged_label" .ReviewMapData.FlaggedCount}}</span>
+			{{end}}
+			{{if or (gt .ReviewMapData.InvalidRefCount 0) (gt .ReviewMapData.OrphanCount 0)}}
 				{{if gt .ReviewMapData.InvalidRefCount 0}}
 					<span class="ui small label tw-bg-red tw-text-white">{{svg "octicon-alert" 12}} {{ctx.Locale.Tr "review_map.invalid_refs" .ReviewMapData.InvalidRefCount}}</span>
 				{{end}}
@@ -46,6 +50,7 @@
 							</span>
 							{{if and $.ReviewMapData.CanReview $approval}}
 								<button type="button" class="review-map-approve-chip ui mini label{{if and (gt $approval.Total 0) (eq $approval.Approved $approval.Total)}} review-map-done tw-bg-green tw-text-white{{end}}" data-approved="{{$approval.Approved}}" data-total="{{$approval.Total}}" title="{{ctx.Locale.Tr "review_map.approve_all_tooltip"}}"><span class="review-map-chip-count">{{$approval.Approved}}/{{$approval.Total}}</span> {{ctx.Locale.Tr "review_map.approved_label"}}</button>
+								<button type="button" class="review-map-flag-btn ui mini label{{if index $.ReviewMapMyFlagged .Hash}} review-map-flagged tw-bg-red tw-text-white{{end}}" title="{{ctx.Locale.Tr "review_map.flag_tooltip"}}" aria-label="{{ctx.Locale.Tr "review_map.flag_tooltip"}}" aria-pressed="{{if index $.ReviewMapMyFlagged .Hash}}true{{else}}false{{end}}">{{svg "octicon-flag" 12}}</button>
 							{{end}}
 						</div>
 						<div class="tw-flex tw-flex-col review-map-refs">

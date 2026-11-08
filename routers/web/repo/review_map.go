@@ -19,10 +19,11 @@ type reviewMapProgressUpdate struct {
 	Hash     string `json:"hash"`
 	Reviewed bool   `json:"reviewed"`
 	RefIndex *int   `json:"refIndex"` // >= 0: approve that one file reference instead of the whole bullet
+	Flag     bool   `json:"flag"`     // true: toggle the discussion flag for the whole bullet instead
 }
 
-// UpdateReviewMapProgress marks one bullet (or one of its file references) of a PR description
-// as reviewed (or not) by the doer
+// UpdateReviewMapProgress marks one bullet (or one of its file references, or its discussion
+// flag) of a PR description as reviewed (or not) by the doer
 func UpdateReviewMapProgress(ctx *context.Context) {
 	if !setting.ReviewMap.Enabled {
 		ctx.NotFound(nil)
@@ -40,7 +41,10 @@ func UpdateReviewMapProgress(ctx *context.Context) {
 		return
 	}
 	key := data.Hash
-	if data.RefIndex != nil {
+	switch {
+	case data.Flag:
+		key = reviewmap.FlagProgressKey(data.Hash)
+	case data.RefIndex != nil:
 		if *data.RefIndex < 0 {
 			ctx.Resp.WriteHeader(http.StatusBadRequest)
 			return
@@ -77,9 +81,14 @@ func PrepareReviewMapData(ctx *context.Context, issue *issues_model.Issue) {
 	for _, key := range pd.MyApprovedRefs {
 		myApprovedRefs[key] = true
 	}
+	myFlagged := make(map[string]bool, len(pd.MyFlagged))
+	for _, hash := range pd.MyFlagged {
+		myFlagged[hash] = true
+	}
 	ctx.Data["ReviewMapData"] = pd
 	ctx.Data["ReviewMapMyReviewed"] = myReviewed
 	ctx.Data["ReviewMapMyApprovedRefs"] = myApprovedRefs
+	ctx.Data["ReviewMapMyFlagged"] = myFlagged
 	ctx.Data["ReviewMapUnmappedChanged"] = pd.Coverage.TotalChanged - pd.Coverage.MappedChanged // templates cannot do arithmetic
 	ctx.PageData["reviewMap"] = pd
 }
