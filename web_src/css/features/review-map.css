@@ -74,6 +74,10 @@
 
 /* change cards: the left spine encodes review state (neutral / selected /
    approved / flagged) — the one place this design spends its boldness */
+.review-map-cards .review-map-bullet > div {
+  min-width: 0;
+}
+
 .review-map-cards .review-map-bullet {
   counter-increment: review-map-bullet;
   padding: 10px 12px 10px 14px;
@@ -145,12 +149,17 @@
 
 .review-map-cards .review-map-refs .review-map-ref,
 .review-map-cards .review-map-refs .review-map-comment {
-  width: fit-content;
+  min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap; /* long paths ellipsize instead of stretching the card */
   font-family: var(--fonts-monospace, monospace);
   font-size: 12px;
+}
+
+.review-map-cards .review-map-ref-item > span {
+  min-width: 0;
 }
 
 /* quiet chips by default: the solid color arrives only with a state */
@@ -194,11 +203,11 @@
 
 /* GitHub-style full-row highlight on the lines implementing the active bullet */
 .review-map-line-highlight > td {
-  background: color-mix(in srgb, var(--color-yellow) 22%, transparent);
+  background: color-mix(in srgb, var(--color-yellow) 12%, transparent);
 }
 
 .review-map-line-highlight > td.lines-num {
-  background: color-mix(in srgb, var(--color-yellow) 34%, transparent);
+  background: color-mix(in srgb, var(--color-yellow) 20%, transparent);
 }
 
 .review-map-line-highlight > td:first-child {
@@ -276,7 +285,7 @@
 
 /* plain-english strips: always-present anchors above each change's mapped lines */
 tr.review-map-strip > td {
-  background: var(--color-box-body);
+  background: var(--color-code-bg);
   border-top: 1px solid var(--color-secondary);
   border-bottom: 1px solid var(--color-secondary);
   padding: 0;

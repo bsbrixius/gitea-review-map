@@ -30,7 +30,7 @@
 									{{if and $.ReviewMapData.CanReview $ref.Valid}}
 										<input type="checkbox" class="review-map-ref-check" data-ref-index="{{$i}}" aria-label="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}" title="{{ctx.Locale.Tr "review_map.approve_ref_label" $ref.File}}"{{if index $.ReviewMapMyApprovedRefs (printf "%s:i%d" $bullet.Hash $i)}} checked{{end}}>
 									{{end}}
-									<a class="review-map-ref{{if not $ref.Valid}} tw-text-error{{end}}" href="{{$.Issue.Link}}/files" data-ref-file="{{$ref.File}}" data-ref-start="{{$ref.StartLine}}" data-ref-end="{{$ref.EndLine}}" data-name-hash="{{$ref.NameHash}}">{{$ref.File}}:{{$ref.StartLine}}-{{$ref.EndLine}}{{if not $ref.Valid}} {{svg "octicon-alert" 12}}{{end}}</a>
+									<a class="review-map-ref{{if not $ref.Valid}} tw-text-error{{end}}" href="{{$.Issue.Link}}/files" data-ref-file="{{$ref.File}}" data-ref-start="{{$ref.StartLine}}" data-ref-end="{{$ref.EndLine}}" data-name-hash="{{$ref.NameHash}}" title="{{$ref.File}}:{{$ref.StartLine}}-{{$ref.EndLine}}">{{$ref.File}}:{{$ref.StartLine}}-{{$ref.EndLine}}{{if not $ref.Valid}} {{svg "octicon-alert" 12}}{{end}}</a>
 								</span>
 								{{if $ref.Note}}<span class="review-map-ref-note" title="{{$ref.Note}}">{{$ref.Note}}</span>{{end}}
 							</div>
