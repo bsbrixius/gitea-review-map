@@ -147,13 +147,17 @@
   gap: 3px;
 }
 
-.review-map-cards .review-map-refs .review-map-ref,
-.review-map-cards .review-map-refs .review-map-comment {
+/* id-specificity override: the old panel rule keeps refs inline-flex chipped;
+ * in the cards they are plain mono text that ellipsizes when narrow */
+#review-map-panel .review-map-cards .review-map-refs .review-map-ref {
+  display: block;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap; /* long paths ellipsize instead of stretching the card */
+  white-space: nowrap;
+  padding: 0;
+  border: none;
   font-family: var(--fonts-monospace, monospace);
   font-size: 12px;
 }
