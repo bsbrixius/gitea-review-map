@@ -80,6 +80,7 @@
 
 .review-map-cards .review-map-bullet {
   counter-increment: review-map-bullet;
+  overflow: hidden; /* cards never leak content, whatever the width */
   padding: 10px 12px 10px 14px;
   border: 1px solid var(--color-secondary);
   border-radius: 8px;
