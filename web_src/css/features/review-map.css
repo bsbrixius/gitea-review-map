@@ -151,6 +151,7 @@
  * in the cards they are plain mono text that ellipsizes when narrow */
 #review-map-panel .review-map-cards .review-map-refs .review-map-ref {
   display: block;
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 100%;
   overflow: hidden;
@@ -163,6 +164,7 @@
 }
 
 .review-map-cards .review-map-ref-item > span {
+  width: 100%; /* the ref row spans the card so the anchor can ellipsize */
   min-width: 0;
 }
 
