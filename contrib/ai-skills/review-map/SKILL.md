@@ -1,10 +1,11 @@
 ---
 name: review-map
 description: >-
-  Write and maintain a review-map block in a pull request body so human
-  reviewers can review an AI-generated PR bullet by bullet. Use when authoring
-  or updating a PR with more than ~200 changed lines on a Gitea instance that
-  has the Review Map feature.
+  review-map: append a machine-readable block to a Gitea PR body that maps
+  each description bullet to the exact diff lines implementing it. Use when
+  authoring a PR with more than ~200 changed lines on an instance with the
+  Review Map feature, or when updating one after new commits (invalid
+  references, unmapped files, or an ⚠ badge mean the block drifted).
 ---
 
 # Review Map: make your PR reviewable bullet by bullet
@@ -12,8 +13,12 @@ description: >-
 Humans cannot review a 3,000-line AI-generated PR as one wall of code. A
 review-map block turns each bullet of the PR description into server-validated
 links to the exact diff lines that implement it, with coverage math and
-per-bullet review progress. This file is the exact contract the server's strict
-parser enforces — follow it literally.
+per-bullet review progress. This file is the exact contract the server's
+strict parser enforces.
+
+**Done when:** the Review Map panel reads `✓ verified` with zero invalid
+references, zero orphans, and the unmapped set is exactly your deliberate
+`ignore` list. Everything below serves that gate.
 
 ## When to write a review map
 
@@ -74,11 +79,11 @@ Format:
 - `bullet:` and `ignore:` values MUST be double-quoted strings, and the text
   must not contain a double quote — there is no escape syntax. Write the
   description bullets without double quotes in the first place.
-- `bullet:` text must be a byte-exact copy-paste of a top-level description
-  bullet, and that bullet must sit outside any code fence (the server skips
-  fenced content when reading the description — a bullet list inside a fence
-  matches nothing). A mismatch makes the entry an "orphan": it still
-  validates, but the panel shows a warning.
+- `bullet:` text must be a byte-exact copy of a top-level description bullet,
+  and that bullet must sit outside any code fence (the server skips fenced
+  content when reading the description — a bullet list inside a fence matches
+  nothing). A mismatch makes the entry an "orphan": it still validates, but
+  the panel shows a warning.
 - The plain-English layer is optional but recommended: `summary:` (one quoted
   sentence, max 280 chars) per bullet, `note:` (max 280 chars) after a file
   entry's `lines:` explaining THAT file's part, and `details:` (up to 8 quoted
@@ -99,7 +104,7 @@ whole block at most 4 KB.
 Semantics:
 
 - Line numbers are NEW-side (post-change) numbers, inclusive on both ends —
-  the right-hand gutter of the diff view. Never the old side.
+  the right-hand gutter of the diff view.
 - A range is valid iff its file is in the diff AND the range intersects at
   least one changed hunk. Ranges MAY include unchanged context lines around a
   change — do so, reviewers need context; context lines just don't count
@@ -150,6 +155,4 @@ them before requesting review.
   review. New commits shift line numbers; drifted ranges show up as invalid
   references — that drift detection is the feature, not a bug. Re-read the
   new diff and fix every `lines:` value.
-- Self-check before requesting review: the Review Map panel reads
-  "✓ verified" with zero invalid references and zero orphans, and the
-  unmapped set contains only what you deliberately ignored.
+- Then re-run the Done-when gate above.
